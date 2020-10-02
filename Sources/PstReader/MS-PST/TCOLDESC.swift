@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.3.4 Table Context (TC)
 /// A Table Context represents a table with rows of columns. From an implementation perspective, a TC is

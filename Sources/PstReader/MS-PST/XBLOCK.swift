@@ -47,9 +47,6 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         
         /// cEnt (2 bytes): The count of BID entries in the XBLOCK.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
-        if cEnt != 0x00 {
-            throw PstReadError.invalidCEnt(cEnt: cEnt)
-        }
         
         /// lcbTotal (4 bytes): Total count of bytes of all the external data stored in the data blocks referenced
         /// by XBLOCK.
@@ -71,7 +68,12 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the XBLOCK a multiple of 64. Implementations MUST ignore this field.
         let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
-        self.rgbPadding = try dataStream.readBytes(count: totalSize % 64)
+        if (totalSize % 64) != 0 {
+            let paddingSize = 64 - (totalSize % 64)
+            self.rgbPadding = try dataStream.readBytes(count: paddingSize)
+        } else {
+            self.rgbPadding = []
+        }
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).

@@ -13,7 +13,7 @@ import DataStream
 /// namespace in which it is used. Each node referenced by the NBT MUST have a unique NID. However,
 /// two subnodes of two different nodes can have identical NIDs, but two subnodes of the same node
 /// MUST have different NIDs.
-internal struct NID {
+public struct NID {
     public let rawValue: UInt32
     public let type: NIDType
     public let nidIndex: UInt32
@@ -29,16 +29,15 @@ internal struct NID {
         /// specifies a list of values for nidType. However, it is worth noting that nidType has no meaning to
         /// the structures defined in the NDB Layer.
         let rawType = rawValue & 0b11111
-        //let rawType = (rawValue >> 27) & 0b11111
-        guard let type = NIDType(rawValue: rawType) else {
-            fatalError("Unknown type \(rawType)")
+        if let type = NIDType(rawValue: rawType) {
+            self.type = type
+            //fatalError("Unknown type \(rawType)")
+        } else {
+            self.type = .internal
         }
-        
-        self.type = type
         
         /// nidIndex (27 bits): The identification portion of the NID.
         self.nidIndex = rawValue >> 5
-        //self.nidIndex = rawValue & 0b111111111111111111111111111
     }
     
     public init(type: NIDType, nid: NID) {

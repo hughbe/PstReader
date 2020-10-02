@@ -6,6 +6,8 @@
 //
 
 import DataStream
+import Foundation
+import MAPI
 
 /// [MS-PST] 1.3.1.2 Lists, Tables, and Properties (LTP) Layer
 /// The LTP layer implements higher-level concepts on top of the NDB construct. The core elements of the
@@ -24,12 +26,6 @@ internal struct LTP {
     
     public init(ndb: NDB) {
         self.ndb = ndb
-        
-        let messageStoreProperies = try! readProperties(nid: NID.SpecialInternal.messageStore)
-        dump(properties: messageStoreProperies)
-        
-        let result = try! readProperties(nid: NID.SpecialInternal.rootFolder)
-        print(result)
     }
     
     public mutating func readProperties(nid: NID) throws -> [UInt16: Any?] {
@@ -53,6 +49,7 @@ internal struct LTP {
             result[property.wPropId] = try readPropertyValue(subNodeTree: subNodeTree, blocks: blocks, property: property)
         }
         
+        dump(properties: result)
         return result
     }
     
@@ -209,7 +206,7 @@ internal struct LTP {
         case .time:
             return try readData { (dataStream, count) in try FILETIME(dataStream: &dataStream).date }
         case .guid:
-            fatalError("NYI: PtypGuid")
+            return try readData { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
         case .serverId:
             fatalError("NYI: PtypServerId")
         case .restriction:
@@ -217,7 +214,7 @@ internal struct LTP {
         case .ruleAction:
             fatalError("NYI: PtypRuleAction")
         case .binary:
-            return try readData { try $0.readBytes(count: $1) }
+            return try readData { Data(try $0.readBytes(count: $1)) }
         case .multipleInteger16:
             fatalError("NYI: PtypMultipleInteger16")
         case .multipleInteger32:
@@ -281,13 +278,13 @@ internal struct LTP {
                 
                 /// rgDataItems (variable): A byte-aligned array of data items. Individual items are delineated using
                 /// the rgulOffsets values.
-                var rgDataItems: [[UInt8]] = []
+                var rgDataItems: [Data] = []
                 rgDataItems.reserveCapacity(Int(ulCount))
                 for i in 0..<ulCount {
                     dataStream.position = Int(dataOffsets[Int(i)])
 
                     let count = Int(getElementCount(index: Int(i)))
-                    let rgDataItem = try dataStream.readBytes(count: count)
+                    let rgDataItem = Data(try dataStream.readBytes(count: count))
                     rgDataItems.append(rgDataItem)
                 }
                 
@@ -343,10 +340,7 @@ internal struct LTP {
         return rowIds.map { NID(rawValue: $0.dwRowID) }
     }
     
-    /// This is the full-scale table reader, that reads all of the data in a table
-    /// T is the type of the row object to be populated
-    /// First form takes a node ID for a node in the main node tree
-    public mutating func readTable(nid: NID) throws -> [[UInt16: Any]] {
+    public mutating func readTable(nid: NID) throws -> [[UInt16: Any?]] {
         guard let (node, subNodeTree) =  try ndb.lookupNodeAndSubNodeTree(nid: nid) else {
             return []
         }
@@ -389,8 +383,6 @@ internal struct LTP {
         } else {
             return []
         }
-        
-        return []
     }
 
     private mutating func readTableData(tcInfo: TCINFO, blocks: [HNDataBlock], dataBlocks: [RowDataBlock], rowIndices: [TCROWID], subNodeTree: BTree<Node>?) throws -> [[UInt16: Any?]] {
@@ -526,7 +518,7 @@ internal struct LTP {
                 return []
             }
             
-            return try readData(hnid: hnid) { try $0.readBytes(count: $1) }
+            return try readData(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
         case .multipleInteger16:
             fatalError("NYI: PtypMultipleInteger16")
         case .multipleInteger32:

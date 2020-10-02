@@ -11,12 +11,13 @@ let package = Package(
             targets: ["PstReader"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/hughbe/DataStream", from: "1.1.0")
+        .package(url: "https://github.com/hughbe/DataStream", from: "1.1.1"),
+        .package(path: "../MAPI")
     ],
     targets: [
         .target(
             name: "PstReader",
-            dependencies: ["DataStream"]),
+            dependencies: ["DataStream", "MAPI"]),
         .testTarget(
             name: "PstReaderTests",
             dependencies: ["PstReader"]),

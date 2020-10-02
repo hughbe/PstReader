@@ -71,7 +71,7 @@ internal struct BTPAGE: CustomDebugStringConvertible {
 
     public var debugDescription: String {
         var s = "BTPAGE\n"
-        s += "- rgentries: [\(rgentries.map { $0.hexString }.joined(separator: ", "))]\n"
+        s += "- rgentries: \(rgentries.hexString)\n"
         s += "- cEnt: \(cEnt.hexString)\n"
         s += "- cEntMax: \(cEntMax.hexString)\n"
         s += "- cbEnt: \(cbEnt.hexString)\n"

@@ -36,8 +36,7 @@ internal struct SLENTRY: CustomDebugStringConvertible {
             self.dwNidPadding = nil
         }
         
-        /// bidData (Unicode: 8 bytes; ANSI: 4 bytes): The BID of the data block associated with the
-        /// subnode.
+        /// bidData (Unicode: 8 bytes; ANSI: 4 bytes): The BID of the data block associated with the subnode.
         self.bidData = try BID(dataStream: &dataStream, isUnicode: isUnicode)
         
         /// bidSub (Unicode: 8 bytes; ANSI: 4 bytes): If nonzero, the BID of the subnode of this subnode.

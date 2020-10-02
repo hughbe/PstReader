@@ -5,6 +5,8 @@
 //  Created by Hugh Bellamy on 16/09/2020.
 //
 
+import MAPI
+
 public enum PstReadError: Error {
     case invalidDwMagic(dwMagic: UInt32)
     case invalidWMagicClient(wMagicClient: UInt16)
@@ -31,4 +33,6 @@ public enum PstReadError: Error {
     case invalidBlockNum(blockNum: Int)
     case invalidRowOffset(rowOffset: Int)
     case invalidPropertySize(expected: UInt8, actual: UInt8)
+    
+    case missingProperty(property: PstPropertyId)
 }

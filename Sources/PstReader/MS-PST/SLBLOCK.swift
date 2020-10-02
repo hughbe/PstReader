@@ -22,32 +22,32 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
     public let cEnt: UInt16
     public let dwPadding: UInt32
     public let rgentries: [SLENTRY]
-    public let rgbPadding: [UInt8]
-    public let blockTrailer: BLOCKTRAILER
+    //public let rgbPadding: [UInt8]
+    //public let blockTrailer: BLOCKTRAILER
     
     public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        let position = dataStream.position
+        //let position = dataStream.position
 
         self.isUnicode = isUnicode
 
         /// btype (1 byte): Block type; MUST be set to 0x02.
         self.btype = try dataStream.read()
-        if btype != 0x02 {
-            throw PstReadError.invalidBtype(btype: btype)
+        if self.btype != 0x02 {
+            throw PstReadError.invalidBtype(btype: self.btype)
         }
         
         /// cLevel (1 byte): MUST be set to 0x00.
         self.cLevel = try dataStream.read()
-        if cLevel != 0x00 {
-            throw PstReadError.invalidCLevel(cLevel: cLevel)
+        if self.cLevel != 0x00 {
+            throw PstReadError.invalidCLevel(cLevel: self.cLevel)
         }
         
         /// cEnt (2 bytes): The number of SLENTRYs in the SLBLOCK. This value and the number of elements in
         /// the rgentries array MUST be non-zero. When this value transitions to zero, it is required for the
         /// block to be deleted.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
-        if cEnt != 0x00 {
-            throw PstReadError.invalidCEnt(cEnt: cEnt)
+        if self.cEnt == 0x00 {
+            throw PstReadError.invalidCEnt(cEnt: self.cEnt)
         }
         
         /// dwPadding (4 bytes, Unicode only): Padding; MUST be set to zero.
@@ -64,16 +64,23 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
         }
         
         self.rgentries = rgentries
-        
+
+        /*
         /// rgbPadding (optional, variable): This field is present if the total size of all of the other fields is not
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the SLBLOCK a multiple of 64. Implementations MUST ignore this field.
         let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
-        self.rgbPadding = try dataStream.readBytes(count: totalSize % 64)
+        if (totalSize % 64) != 0 {
+            let paddingSize = 64 - (totalSize % 64)
+            self.rgbPadding = try dataStream.readBytes(count: paddingSize)
+        } else {
+            self.rgbPadding = []
+        }
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).
         self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, isUnicode: isUnicode)
+         */
     }
 
     public var debugDescription: String {
@@ -85,7 +92,7 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
         for entry in rgentries.enumerated() {
             s += " - rgentries[\(entry.offset)] \(entry.element)"
         }        
-        s += "- blockTrailer: \(blockTrailer)"
+        //s += "- blockTrailer: \(blockTrailer)"
         return s
     }
 }

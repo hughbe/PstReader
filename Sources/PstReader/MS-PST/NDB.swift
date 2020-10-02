@@ -229,7 +229,7 @@ internal struct NDB {
             return []
         }
         
-        if node.subDataBid.rawValue == 0 {
+        if node.subDataBid.rawValue != 0 {
             fatalError("NYI: Sub-node of sub-node")
         }
         

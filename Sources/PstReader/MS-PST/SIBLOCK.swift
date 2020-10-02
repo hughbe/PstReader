@@ -44,9 +44,6 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         
         /// cEnt (2 bytes): The number of SIENTRYs in the SIBLOCK.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
-        if cEnt != 0x00 {
-            throw PstReadError.invalidCEnt(cEnt: cEnt)
-        }
         
         /// dwPadding (4 bytes): Padding; MUST be set to zero.
         self.dwPadding = try dataStream.read(endianess: .littleEndian)
@@ -67,7 +64,12 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the SIBLOCK a multiple of 64. Implementations MUST ignore this field.
         let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
-        self.rgbPadding = try dataStream.readBytes(count: totalSize % 64)
+        if (totalSize % 64) != 0 {
+            let paddingSize = 64 - (totalSize % 64)
+            self.rgbPadding = try dataStream.readBytes(count: paddingSize)
+        } else {
+            self.rgbPadding = []
+        }
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).

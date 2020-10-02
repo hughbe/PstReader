@@ -284,8 +284,8 @@ internal struct HEADER: CustomDebugStringConvertible {
             s += "- dwAlign: \(dwAlign!.hexString)\n"
         }
 
-        s += "- rgbFM: [\(rgbFM.map { $0.hexString }.joined(separator: ", "))]\n"
-        s += "- rgbFP: [\(rgbFP.map { $0.hexString }.joined(separator: ", "))]\n"
+        s += "- rgbFM: \(rgbFM.hexString)\n"
+        s += "- rgbFP: \(rgbFP.hexString)\n"
         s += "- bSentinel: \(bSentinel.hexString)\n"
         s += "- bCryptMethod: \(bCryptMethod)\n"
         s += "- rgbReserved: \(rgbReserved.hexString)\n"
@@ -308,7 +308,7 @@ internal struct HEADER: CustomDebugStringConvertible {
 
         s += "- rgbReserved2: \(rgbReserved2.0.hexString), \(rgbReserved2.1.hexString), \(rgbReserved2.2.hexString)\n"
         s += "- bReserved: \(bReserved.hexString)\n"
-        s += "- rgbReserved3: [\(rgbReserved3.map { $0.hexString }.joined(separator: ", "))]\n"
+        s += "- rgbReserved3: \(rgbReserved3.hexString)\n"
 
         return s
     }

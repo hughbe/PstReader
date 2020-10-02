@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.3.3 Property Context (PC)
 /// The Property Context is built directly on top of a BTH. The existence of a PC is indicated at the HN
@@ -16,7 +17,7 @@ import DataStream
 /// searching the BTH for a key that matches the property identifier of the desired property, as the
 /// following data structure illustrates.
 /// [MS-PST] 2.3.3.3 PC BTH Record
-internal struct PCBTH: CustomDebugStringConvertible, BTH {
+internal struct PCBTH: BTH, CustomDebugStringConvertible {
     public static let size: UInt16 = 8
     public let wPropId: UInt16
     public let wPropType: PropertyType
