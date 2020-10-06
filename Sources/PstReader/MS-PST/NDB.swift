@@ -197,14 +197,14 @@ internal struct NDB {
             
             switch cLevel {
             case 0x01:
-                let xBlock = try XBLOCK(dataStream: &dataStream, isUnicode: isUnicode)
+                let xBlock = try XBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
                 for bid in xBlock.rgbid {
                     // Recurse.
                     // Pass what we know here of the total length through, so that it can be returned on the first block
                     try readBlocks(dataBid: bid, blocks: &blocks, totalLength: totalLength != 0 ? totalLength : xBlock.lcbTotal)
                 }
             case 0x02:
-                let xxBlock = try XXBLOCK(dataStream: &dataStream, isUnicode: isUnicode)
+                let xxBlock = try XXBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
                 for bid in xxBlock.rgbid {
                     // Recurse.
                     // Pass what we know here of the total length through, so that it can be returned on the first block

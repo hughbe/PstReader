@@ -25,12 +25,10 @@ internal struct XBLOCK: CustomDebugStringConvertible {
     public let cEnt: UInt16
     public let lcbTotal: UInt32
     public let rgbid: [BID]
-    public let rgbPadding: [UInt8]
-    public let blockTrailer: BLOCKTRAILER
+    //public let rgbPadding: [UInt8]
+    //public let blockTrailer: BLOCKTRAILER
     
     public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        let position = dataStream.position
-
         self.isUnicode = isUnicode
 
         /// btype (1 byte): Block type; MUST be set to 0x01 to indicate an XBLOCK or XXBLOCK.
@@ -64,6 +62,7 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         
         self.rgbid = rgbid
         
+        /*
         /// rgbPadding (variable, optional): This field is present if the total size of all of the other fields is not
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the XBLOCK a multiple of 64. Implementations MUST ignore this field.
@@ -78,6 +77,7 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).
         self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, isUnicode: isUnicode)
+        */
     }
 
     public var debugDescription: String {
@@ -89,7 +89,7 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         for entry in rgbid.enumerated() {
             s += " - rgbid[\(entry.offset)] \(entry.element)"
         }
-        s += "- blockTrailer: \(blockTrailer)"
+        //s += "- blockTrailer: \(blockTrailer)"
         return s
     }
 }

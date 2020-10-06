@@ -370,19 +370,29 @@ internal struct LTP {
                 return []
             }
             
-            let dataBlock = RowDataBlock(buffer: dataForBlock, offset: 0, count: dataForBlock.count)
+            let dataBlock = RowDataBlock(buffer: dataForBlock)
             return try readTableData(tcInfo: tcInfo, blocks: blocks, dataBlocks: [dataBlock], rowIndices: rowIndices, subNodeTree: subNodeTree)
         } else if tcInfo.hnidRows.nid.rawValue != 0 {
             // Don't use GetBytesForHNID in this case, as we need to handle multiple blocks
-            /*
-             // Don't use GetBytesForHNID in this case, as we need to handle multiple blocks
-             var dataBlocks = ReadSubNodeRowDataBlocks(fs, subNodeTree, t.hnidRows.NID);
-             return ReadTableData<T>(fs, t, blocks, dataBlocks, cols, colsToGet, subNodeTree, indexes, g, idGetter, storeProp);
-             */
-            fatalError("NYI")
+            let dataBlocks = try readSubNodeRowDataBlocks(subNodeTree: subNodeTree, nid: tcInfo.hnidRows.nid)
+            return try readTableData(tcInfo: tcInfo, blocks: blocks, dataBlocks: dataBlocks, rowIndices: rowIndices, subNodeTree: subNodeTree)
         } else {
             return []
         }
+    }
+    
+    // Read all of the data blocks for a table, in the case where the rows are to be accessed via a sub node
+    // The variation here is that for reading rows, we need to retain the block structure, so we return a set of blocks
+    private mutating func readSubNodeRowDataBlocks(subNodeTree: BTree<Node>?, nid: NID) throws -> [RowDataBlock] {
+        guard let subNode = subNodeTree?.lookup(key: UInt64(nid.rawValue)) else {
+            return []
+        }
+        
+        if subNode.subDataBid.rawValue != 0 {
+            fatalError("NYI: sub-nodes of sub-nodes")
+        }
+        
+        return try ndb.readBlocks(dataBid: subNode.dataBid).map(RowDataBlock.init)
     }
 
     private mutating func readTableData(tcInfo: TCINFO, blocks: [HNDataBlock], dataBlocks: [RowDataBlock], rowIndices: [TCROWID], subNodeTree: BTree<Node>?) throws -> [[UInt16: Any?]] {
@@ -470,7 +480,11 @@ internal struct LTP {
         case .objectOrEmbeddedTable:
             fatalError("NYI: PtypObject or PtypEmbeddedTable")
         case .integer64:
-            fatalError("NYI: PtypInteger6")
+            if column.cbData != 8 {
+                throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+            }
+
+            return try blockDataStream.read(endianess: .littleEndian) as UInt64
         case .string8:
             if column.cbData != 4 {
                 throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
@@ -552,6 +566,12 @@ internal struct LTP {
         public let buffer: [UInt8]
         public let offset: Int
         public let count: Int
+        
+        public init(buffer: [UInt8]) {
+            self.buffer = buffer
+            self.offset = 0
+            self.count = buffer.count
+        }
     }
     
     private struct HNDataBlock {

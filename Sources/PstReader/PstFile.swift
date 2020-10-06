@@ -64,16 +64,8 @@ public class PstFile {
         return try ltp.readTable(nid: NID(type: .contentsTable, nid: folder.nid)).map { Message(folder: folder, properties: $0, file: self) }
     }
     
-    public func getAssociatedContents(folder: Folder) throws {
-        let x = try ltp.readTable(nid: NID(type: .assocContentsTable, nid: folder.nid))
-        print(x)
-        if x.count > 0 {
-            print(folder)
-        }
-        
-        for child in folder.children {
-            try getAssociatedContents(folder: child)
-        }
+    public func getAssociatedContents(folder: Folder) throws -> [[UInt16: Any?]] {
+        return try ltp.readTable(nid: NID(type: .assocContentsTable, nid: folder.nid))
     }
     
     public struct MessageStore: MessageStorageInternal {
@@ -118,7 +110,7 @@ public class PstFile {
             return children.first { $0.displayName == child }
         }
         
-        internal func dump() {
+        public func dump() {
             func dumpFolder(folder: Folder, level: Int) {
                 MAPI.dump(properties: properties)
                 print("\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)")
@@ -126,6 +118,14 @@ public class PstFile {
                 print("\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)")
                 for child in folder.children {
                     dumpFolder(folder: child, level: level + 1)
+                }
+                
+                for message in try! file.getMessages(folder: folder) {
+                    message.dump()
+                }
+                
+                for contents in try! file.getAssociatedContents(folder: folder) {
+                    MAPI.dump(properties: contents)
                 }
                 
                 print()

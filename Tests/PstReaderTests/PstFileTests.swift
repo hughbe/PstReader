@@ -266,9 +266,41 @@ final class OutlookPstFileTests: XCTestCase {
         do {
             let data = try getData(name: "backup_with_rules")
             let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
             let inboxFolder = pst.rootFolder!["Top of Outlook data file"]!["Inbox"]!
-            let associatedContents = try pst.getAssociatedContents(folder: inboxFolder)
-            print(associatedContents)
+            XCTAssertNotNil(inboxFolder)
+            
+            //let assoc = try! pst.getAssociatedContents(folder: pst.rootFolder!)
+        }
+        do {
+            let data = try getData(name: "Outlook")
+            let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
+            XCTAssertNotNil(pst.rootFolder)
+        }
+        do {
+            let data = try getData(name: "sample")
+            let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
+            XCTAssertNotNil(pst.rootFolder)
+        }
+        do {
+            let data = try getData(name: "source")
+            let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
+            XCTAssertNotNil(pst.rootFolder)
+        }
+        do {
+            let data = try getData(name: "Sub")
+            let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
+            XCTAssertNotNil(pst.rootFolder)
+        }
+        do {
+            let data = try getData(name: "test")
+            let pst = try PstFile(data: data)
+            pst.rootFolder?.dump()
+            XCTAssertNotNil(pst.rootFolder)
         }
     }
 
