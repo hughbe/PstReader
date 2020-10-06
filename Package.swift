@@ -12,12 +12,13 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/hughbe/DataStream", from: "1.1.1"),
+        .package(url: "https://github.com/hughbe/WindowsDataTypes", from: "1.0.0"),
         .package(name: "MAPI", path: "../SwiftMAPI")
     ],
     targets: [
         .target(
             name: "PstReader",
-            dependencies: ["DataStream", "MAPI"]),
+            dependencies: ["DataStream", "MAPI", "WindowsDataTypes"]),
         .testTarget(
             name: "PstReaderTests",
             dependencies: ["PstReader"]),

@@ -8,6 +8,7 @@
 import DataStream
 import Foundation
 import MAPI
+import WindowsDataTypes
 
 /// [MS-PST] 1.3.1.2 Lists, Tables, and Properties (LTP) Layer
 /// The LTP layer implements higher-level concepts on top of the NDB construct. The core elements of the

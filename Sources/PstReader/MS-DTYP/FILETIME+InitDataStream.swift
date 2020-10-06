@@ -6,10 +6,12 @@
 //
 
 import DataStream
+import WindowsDataTypes
 
 internal extension FILETIME {
     init(dataStream: inout DataStream) throws {
-        self.dwLowDateTime = try dataStream.read(endianess: .littleEndian)
-        self.dwHighDateTime = try dataStream.read(endianess: .littleEndian)
+        let dwLowDateTime: UInt32 = try dataStream.read(endianess: .littleEndian)
+        let dwHighDateTime: UInt32 = try dataStream.read(endianess: .littleEndian)
+        self.init(dwLowDateTime: dwLowDateTime, dwHighDateTime: dwHighDateTime)
     }
 }
