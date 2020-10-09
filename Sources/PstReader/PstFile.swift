@@ -10,8 +10,7 @@ import Foundation
 import MAPI
 
 public class PstFile {
-    private let ndb: NDB
-    private var ltp: LTP
+    private var ndb: NDB
     
     public convenience init(data: Data) throws {
         var dataStream = DataStream(data: data)
@@ -20,11 +19,10 @@ public class PstFile {
     
     public init(dataStream: inout DataStream) throws {
         self.ndb = try NDB(dataStream: &dataStream)
-        self.ltp = LTP(ndb: ndb)
     }
 
     internal lazy var namedProperties: NPMAP? = {
-        return try? NPMAP(ltp: &ltp)
+        return try? NPMAP(ndb: ndb)
     }()
     
     public lazy var rootFolder: Folder? = {
@@ -32,18 +30,18 @@ public class PstFile {
     }()
     
     public lazy var messageStore: MessageStore? = {
-        guard let properties = try? ltp.readProperties(nid: NID.SpecialInternal.messageStore) else {
+        guard let propertyContext = try? LTP.readPropertyContext(ndb: ndb, nid: NID.SpecialInternal.messageStore) else {
             return nil
         }
 
-        return MessageStore(properties: properties, file: self)
+        return MessageStore(properties: propertyContext.properties, file: self)
     }()
     
     public func getFolder(nid: NID) throws -> Folder {
-        let properties = try ltp.readProperties(nid: nid)
-        var folder = Folder(nid: nid, properties: properties, file: self)
+        let propertyContext = try LTP.readPropertyContext(ndb: ndb, nid: nid)
+        var folder = Folder(nid: nid, properties: propertyContext.properties, file: self)
         
-        for tableRow in try ltp.readTableRowIds(nid: NID(type: .hierachyTable, nid: nid)) {
+        for tableRow in try LTP.readTableRowIds(ndb: ndb, nid: NID(type: .hierachyTable, nid: nid)) {
             if tableRow.type != .normalFolder {
                 continue
             }
@@ -61,14 +59,34 @@ public class PstFile {
             return []
         }
         
-        return try ltp.readTable(nid: NID(type: .contentsTable, nid: folder.nid)).map { Message(folder: folder, properties: $0, file: self) }
+        return try LTP
+            .readTable(ndb: ndb, nid: NID(type: .contentsTable, nid: folder.nid))
+            .rows
+            .map { Message(folder: folder, nid: $0.nid, properties: $0.properties, file: self) }
     }
     
     public func getAssociatedContents(folder: Folder) throws -> [[UInt16: Any?]] {
-        return try ltp.readTable(nid: NID(type: .assocContentsTable, nid: folder.nid))
+        return try LTP
+            .readTable(ndb: ndb, nid: NID(type: .assocContentsTable, nid: folder.nid))
+            .rows
+            .map { $0.properties }
     }
     
-    public struct MessageStore: MessageStorageInternal {
+    public func getMessageDetails(message: Message) throws -> Message {
+        let propertyContext = try LTP.readPropertyContext(ndb: ndb, nid: message.nid)
+        let message = Message(folder: message.folder, nid: message.nid, properties: propertyContext.properties, file: self)
+
+        /*
+        let t = try ltp.readTable(nid: NID(type: .recipientTable, nid: message.nid))
+        if t.count > 0 {
+            fatalError("N!!")
+        }
+         */
+        
+        return message
+    }
+    
+    public struct MessageStore: MessageStorageInternal, CustomStringConvertible {
         internal let properties: [UInt16: Any?]
         internal let file: PstFile
         
@@ -76,25 +94,13 @@ public class PstFile {
             self.properties = properties
             self.file = file
         }
-    }
-    
-    public struct Message: MessageStorageInternal {
-        internal let folder: Folder
-        internal let properties: [UInt16: Any?]
-        internal let file: PstFile
         
-        internal init(folder: Folder, properties: [UInt16: Any?], file: PstFile) {
-            self.folder = folder
-            self.properties = properties
-            self.file = file
-        }
-        
-        internal func dump() {
-            MAPI.dump(properties: properties)
+        public var description: String {
+            return propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary)
         }
     }
     
-    public struct Folder: MessageStorageInternal {
+    public struct Folder: MessageStorageInternal, CustomStringConvertible {
         internal let nid: NID
         internal let properties: [UInt16: Any?]
         internal let file: PstFile
@@ -110,28 +116,46 @@ public class PstFile {
             return children.first { $0.displayName == child }
         }
         
-        public func dump() {
-            func dumpFolder(folder: Folder, level: Int) {
-                MAPI.dump(properties: properties)
-                print("\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)")
-                print("\(String(repeating: "\t", count: level)) Content Count: \(folder.contentCount!)")
-                print("\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)")
+        public var description: String {
+            func dumpFolder(folder: Folder, level: Int) -> String {
+                var s = propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary) + "\n"
+                s += "\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)\n"
+                s += "\(String(repeating: "\t", count: level)) Content Count: \(folder.contentCount!)\n"
+                s += "\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)\n"
                 for child in folder.children {
-                    dumpFolder(folder: child, level: level + 1)
+                    s += dumpFolder(folder: child, level: level + 1)
                 }
                 
                 for message in try! file.getMessages(folder: folder) {
-                    message.dump()
+                    s += try! file.getMessageDetails(message: message).description
                 }
                 
                 for contents in try! file.getAssociatedContents(folder: folder) {
-                    MAPI.dump(properties: contents)
+                    s += propertiesString(properties: contents, namedProperties: file.namedProperties?.dictionary)
                 }
-                
-                print()
+
+                return s
             }
             
-            dumpFolder(folder: self, level: 0)
+            return dumpFolder(folder: self, level: 0)
+        }
+    }
+    
+    public struct Message: MessageStorageInternal, CustomStringConvertible {
+        internal let folder: Folder
+        internal let nid: NID
+        internal let properties: [UInt16: Any?]
+        internal let file: PstFile
+        
+        internal init(folder: Folder, nid: NID, properties: [UInt16: Any?], file: PstFile) {
+            self.folder = folder
+            self.nid = nid
+            self.properties = properties
+            self.file = file
+        }
+        
+        public var description: String {
+            return propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary)
         }
     }
 }

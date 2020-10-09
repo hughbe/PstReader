@@ -26,7 +26,7 @@ import DataStream
 /// block is located. The CB is the count of bytes stored within the block. The CREF is the count of
 /// references to the data stored within the block.
 /// The roots of the NBT and BBT can be accessed from the header of the PST file.
-internal struct NDB {
+internal class NDB {
     public var isUnicode: Bool {
         return header.isUnicode
     }
@@ -90,13 +90,17 @@ internal struct NDB {
         return try nodeTree.lookup(key: UInt64(nid.rawValue), readDeferred: readDeferred)
     }
     
-    public mutating func readSubNodeBTree(bid:BID) throws -> BTree<Node> {
+    public func readSubNodeBTree(bid: BID) throws -> BTree<Node>? {
+        if bid.rawValue == 0 {
+            return nil
+        }
+
         let tree = BTree<Node>()
         try readSubNodeBTree(bid: bid, parent: tree.root)
         return tree
     }
     
-    private mutating func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int {
+    private func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int {
         dataStream.position = Int(block.offset.rawValue)
         try dataStream.copyBytes(to: buffer, count: Int(block.length))
         return Int(block.length)
@@ -104,7 +108,7 @@ internal struct NDB {
     
     /// When a data block has a subnode, it can be a simple node, or a two-level tree
     /// This reads a sub node and builds suitable data structures, so that we can later access data held in it
-    private mutating func readSubNodeBTree(bid: BID, parent: TreeIntermediate) throws {
+    private func readSubNodeBTree(bid: BID, parent: TreeIntermediate) throws {
         guard let block = try lookupBlock(bid: bid) else {
             fatalError("No such block \(bid)")
         }
@@ -152,30 +156,17 @@ internal struct NDB {
         return try blockTree.lookup(key: bid.rawValue & 0xFFFFFFFE, readDeferred: readDeferred);
     }
     
-    /// Some nodes use sub-nodes to hold local data, so we need to give access to both levels
-    public mutating func lookupNodeAndSubNodeTree(nid: NID) throws -> (node: Node, subtree: BTree<Node>?)? {
-        guard let node = try lookupNode(nid: nid) else {
-            return nil
-        }
-        
-        if node.subDataBid.rawValue == 0 {
-            return (node, nil)
-        }
-        
-        return (node, try readSubNodeBTree(bid: node.subDataBid))
-    }
-    
     private func decrypt(buffer: inout [UInt8], key: UInt32, offset: Int = 0, count: Int = 0) {
         return Crypto.decrypt(buffer: &buffer, method: header.bCryptMethod, key: key, offset: offset, count: count > 0 ? count: buffer.count - offset)
     }
     
-    public mutating func readBlocks(dataBid: BID) throws -> [[UInt8]] {
+    public func readBlocks(dataBid: BID) throws -> [[UInt8]] {
         var blocks: [[UInt8]] = []
         try readBlocks(dataBid: dataBid, blocks: &blocks, totalLength: 0)
         return blocks
     }
     
-    private mutating func readBlocks(dataBid: BID, blocks: inout [[UInt8]], totalLength: UInt32) throws {
+    private func readBlocks(dataBid: BID, blocks: inout [[UInt8]], totalLength: UInt32) throws {
         guard let block = try lookupBlock(bid: dataBid) else {
             fatalError("No such block \(dataBid)")
         }
@@ -220,7 +211,7 @@ internal struct NDB {
         }
     }
     
-    public mutating func readSubNodeBlock(subNodeTree: BTree<Node>, nid: NID) throws -> [UInt8] {
+    public func readSubNodeBlock(subNodeTree: BTree<Node>, nid: NID) throws -> [UInt8] {
         if nid.rawValue == 0 {
             return []
         }
@@ -236,7 +227,7 @@ internal struct NDB {
         return try readBlock(dataBid: node.dataBid)
     }
     
-    public mutating func readBlock(dataBid: BID) throws -> [UInt8] {
+    public func readBlock(dataBid: BID) throws -> [UInt8] {
         /*
         var buffer: [UInt8] = []
         var offset = 0

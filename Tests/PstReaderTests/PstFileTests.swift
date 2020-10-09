@@ -12,8 +12,15 @@ import XCTest
 final class OutlookPstFileTests: XCTestCase {
     func testExample() throws {
         do {
+            //let data = try getData(name: "hughbellars@gmail.com")
+            //let pst = try PstFile(data: data)
+            //print(pst.rootFolder)
+        }
+        
+        do {
             let data = try getData(name: "backup")
             let pst = try PstFile(data: data)
+            print(pst.rootFolder!)
     
             XCTAssertNotNil(pst.rootFolder)
             XCTAssertEqual("", pst.rootFolder!.displayName)
@@ -266,7 +273,7 @@ final class OutlookPstFileTests: XCTestCase {
         do {
             let data = try getData(name: "backup_with_rules")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             let inboxFolder = pst.rootFolder!["Top of Outlook data file"]!["Inbox"]!
             XCTAssertNotNil(inboxFolder)
             
@@ -275,31 +282,31 @@ final class OutlookPstFileTests: XCTestCase {
         do {
             let data = try getData(name: "Outlook")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
             let data = try getData(name: "sample")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
             let data = try getData(name: "source")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
             let data = try getData(name: "Sub")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
             let data = try getData(name: "test")
             let pst = try PstFile(data: data)
-            pst.rootFolder?.dump()
+            print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
     }

@@ -25,8 +25,8 @@ import MAPI
 internal struct NPMAP {
     public private(set) var dictionary: [NamedProperty: UInt16]
     
-    public init(ltp: inout LTP) throws {
-        let properties = try ltp.readProperties(nid: NID.SpecialInternal.nameToIdMap)
+    public init(ndb: NDB) throws {
+        let propertyContext = try LTP.readPropertyContext(ndb: ndb, nid: NID.SpecialInternal.nameToIdMap)
 
         /// [MS-PST] 2.4.7.2 GUID Stream
         /// The GUID Stream is a flat array of 16-byte GUID values that contains the GUIDs associated with all
@@ -35,7 +35,7 @@ internal struct NPMAP {
         /// For each NAMEID record, the wGuid field is used to locate the GUID that is associated with the named
         /// property. Because each GUID represents a property set that can contain many related properties, it is
         /// therefore quite common to have multiple NAMEID records referring to the same GUID.
-        guard let guidStream = properties[PstPropertyId.tagNameidStreamGuid.rawValue] as? Data else {
+        guard let guidStream = propertyContext.properties[PstPropertyId.tagNameidStreamGuid.rawValue] as? Data else {
             throw PstReadError.missingProperty(property: .tagNameidStreamGuid)
         }
 
@@ -43,7 +43,7 @@ internal struct NPMAP {
         /// The Entry Stream is a flat array of NAMEID records that represent all the named properties in the
         /// PST. The Entry Stream is stored as a single property in the PC with the property tag
         /// PidTagNameidStreamEntry.
-        guard let entryStream = properties[PstPropertyId.tagNameidStreamEntry.rawValue] as? Data else {
+        guard let entryStream = propertyContext.properties[PstPropertyId.tagNameidStreamEntry.rawValue] as? Data else {
             throw PstReadError.missingProperty(property: .tagNameidStreamEntry)
         }
     
@@ -51,7 +51,7 @@ internal struct NPMAP {
         /// The String Stream is a packed list of strings that is used for all the named properties in the PST. The
         /// String Stream is stored as a single property in the PC with the property tag
         /// PidTagNameidStreamString.
-        guard let stringStream = properties[PstPropertyId.tagNameidStreamString.rawValue] as? Data else {
+        guard let stringStream = propertyContext.properties[PstPropertyId.tagNameidStreamString.rawValue] as? Data else {
             throw PstReadError.missingProperty(property: .tagNameidStreamString)
         }
         

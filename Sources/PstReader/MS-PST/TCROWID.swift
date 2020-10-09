@@ -61,16 +61,15 @@ import DataStream
 internal struct TCROWID: BTH, CustomDebugStringConvertible {
     public static var size: UInt16 = 8
     
-    public let dwRowID: UInt32
+    public let dwRowID: NID
     public let dwRowIndex: UInt32
 
     public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        /// dwRowID (4 bytes): This is the 32-bit primary key value that uniquely identifies a row in the Row
-        /// Matrix.
-        self.dwRowID = try dataStream.read(endianess: .littleEndian)
+        /// dwRowID (4 bytes): This is the 32-bit primary key value that uniquely identifies a row in the Row Matrix.
+        self.dwRowID = try NID(dataStream: &dataStream)
         
-        /// dwRowIndex (Unicode: 4 bytes; ANSI: 2 bytes): The 0-based index to the corresponding row in
-        /// the Row Matrix. Note that for ANSI PSTs, the maximum number of rows is 2^16.
+        /// dwRowIndex (Unicode: 4 bytes; ANSI: 2 bytes): The 0-based index to the corresponding row in the Row Matrix.
+        /// Note that for ANSI PSTs, the maximum number of rows is 2^16.
         if isUnicode {
             self.dwRowIndex = try dataStream.read(endianess: .littleEndian)
         } else {
@@ -80,7 +79,7 @@ internal struct TCROWID: BTH, CustomDebugStringConvertible {
     
     public var debugDescription: String {
         var s = "TCROWID\n"
-        s += "- dwRowID: \(dwRowID.hexString)\n"
+        s += "- dwRowID: \(dwRowID)\n"
         s += "- dwRowIndex: \(dwRowIndex)\n"
         return s
     }
