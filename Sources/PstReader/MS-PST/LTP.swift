@@ -24,26 +24,6 @@ internal class LTP {
         return try PropertyContext(ndb: ndb, nid: nid)
     }
     
-    /// This is a cutdown version of the table reader to fetch subfolder NIDs from the hierarchy table of a folder, avoiding the overhead of reading the data rows when scanning the folder tree
-    public static func readTableRowIds(ndb: NDB, nid: NID) throws -> [NID] {
-        guard let node = try ndb.lookupNode(nid: nid) else {
-            return []
-        }
-
-        let heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
-        guard let firstBlock = heapOnNode.blocks.first, firstBlock.bClientSig! == .tc else {
-            return []
-        }
-        
-        // Read the table information
-        var dataStream = heapOnNode.getDataStream(hid: firstBlock.hidUserRoot!)
-        let tcInfo = try TCINFO(dataStream: &dataStream)
-        
-        // Read the row index and return the NIDs from it
-        let btreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
-        return btreeOnHeap.bthList.map { $0.dwRowID }
-    }
-    
     public static func readTable(ndb: NDB, nid: NID) throws -> TableContext {
         return try TableContext(ndb: ndb, nid: nid)
     }

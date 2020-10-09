@@ -8,11 +8,10 @@
 import DataStream
 
 /// [MS-PST] 2.2.2.1 NID (Node ID)
-/// Nodes provide the primary abstraction used to reference data stored in the PST file that is not
-/// interpreted by the NDB layer. Each node is identified using its NID. Each NID is unique within the
-/// namespace in which it is used. Each node referenced by the NBT MUST have a unique NID. However,
-/// two subnodes of two different nodes can have identical NIDs, but two subnodes of the same node
-/// MUST have different NIDs.
+/// Nodes provide the primary abstraction used to reference data stored in the PST file that is not interpreted by the NDB layer.
+/// Each node is identified using its NID. Each NID is unique within the namespace in which it is used. Each node referenced by
+/// the NBT MUST have a unique NID. However, wo subnodes of two different nodes can have identical NIDs, but two subnodes
+/// of the same node MUST have different NIDs.
 public struct NID {
     public let rawValue: UInt32
     public let type: NIDType

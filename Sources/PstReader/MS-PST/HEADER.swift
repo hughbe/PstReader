@@ -134,20 +134,17 @@ internal struct HEADER: CustomDebugStringConvertible {
         /// ensure that the HEADER CRCs are different after each header modification.
         self.dwUnique = try dataStream.read(endianess: .littleEndian)
 
-        /// rgnid[] (128 bytes): A fixed array of 32 NIDs, each corresponding to one of the 32 possible
-        /// NID_TYPEs (section 2.2.2.1). Different NID_TYPEs can have different starting nidIndex values.
-        /// When a blank PST file is created, these values are initialized by NID_TYPE according to the
-        /// following table. Each of these NIDs indicates the last nidIndex value that had been allocated for
-        /// the corresponding NID_TYPE. When an NID of a particular type is assigned, the corresponding slot
-        /// in rgnid is also incremented by 1.
+        /// rgnid[] (128 bytes): A fixed array of 32 NIDs, each corresponding to one of the 32 possible NID_TYPEs (section 2.2.2.1).
+        /// Different NID_TYPEs can have different starting nidIndex values. When a blank PST file is created, these values are initialized by NID_TYPE
+        /// according to the following table. Each of these NIDs indicates the last nidIndex value that had been allocated for the corresponding NID_TYPE.
+        /// When an NID of a particular type is assigned, the corresponding slot n rgnid is also incremented by 1.
         /// NID_TYPE Starting nidIndex
         /// NID_TYPE_NORMAL_FOLDER 1024 (0x400)
         /// NID_TYPE_SEARCH_FOLDER 16384 (0x4000)
-        /// NID_TYPE_NORMAL_MESSAGE 65536
-        /// (0x10000)
+        /// NID_TYPE_NORMAL_MESSAGE 65536 (0x10000)
         /// NID_TYPE_ASSOC_MESSAGE 32768 (0x8000)
         /// Any other NID_TYPE 1024 (0x400)
-        var rgnid = [NID]()
+        var rgnid: [NID] = []
         rgnid.reserveCapacity(32)
         for _ in 0..<32 {
             let nid = try NID(dataStream: &dataStream)
@@ -158,9 +155,9 @@ internal struct HEADER: CustomDebugStringConvertible {
 
         /// qwUnused (8 bytes): Unused space; MUST be set to zero. Unicode PST file format only.
         if isUnicode {
-            qwUnused = try dataStream.read(endianess: .littleEndian)
+            self.qwUnused = try dataStream.read(endianess: .littleEndian)
         } else {
-            qwUnused = nil
+            self.qwUnused = nil
         }
 
         /// root (Unicode: 72 bytes; ANSI: 40 bytes): A ROOT structure (section 2.2.2.5).

@@ -41,12 +41,13 @@ public class PstFile {
         let propertyContext = try LTP.readPropertyContext(ndb: ndb, nid: nid)
         var folder = Folder(nid: nid, properties: propertyContext.properties, file: self)
         
-        for tableRow in try LTP.readTableRowIds(ndb: ndb, nid: NID(type: .hierachyTable, nid: nid)) {
-            if tableRow.type != .normalFolder {
+        let table = try LTP.readTable(ndb: ndb, nid: NID(type: .hierachyTable, nid: nid))
+        for tableRow in table.bTreeOnHeap.bthList {
+            if tableRow.dwRowID.type != .normalFolder {
                 continue
             }
             
-            let child = try getFolder(nid: tableRow)
+            let child = try getFolder(nid: tableRow.dwRowID)
             folder.children.append(child)
         }
         
@@ -59,17 +60,14 @@ public class PstFile {
             return []
         }
         
-        return try LTP
-            .readTable(ndb: ndb, nid: NID(type: .contentsTable, nid: folder.nid))
-            .rows
+        var table = try LTP.readTable(ndb: ndb, nid: NID(type: .contentsTable, nid: folder.nid))
+        return table.rows
             .map { Message(folder: folder, nid: $0.nid, properties: $0.properties, file: self) }
     }
     
     public func getAssociatedContents(folder: Folder) throws -> [[UInt16: Any?]] {
-        return try LTP
-            .readTable(ndb: ndb, nid: NID(type: .assocContentsTable, nid: folder.nid))
-            .rows
-            .map { $0.properties }
+        var table = try LTP.readTable(ndb: ndb, nid: NID(type: .assocContentsTable, nid: folder.nid))
+        return try table.rows.map { try $0.properties.getAllProperties() }
     }
     
     public func getMessageDetails(message: Message) throws -> Message {
@@ -87,26 +85,26 @@ public class PstFile {
     }
     
     public struct MessageStore: MessageStorageInternal, CustomStringConvertible {
-        internal let properties: [UInt16: Any?]
+        internal var properties: PropertiesReader
         internal let file: PstFile
         
-        internal init(properties: [UInt16: Any?], file: PstFile) {
+        internal init(properties: PropertiesReader, file: PstFile) {
             self.properties = properties
             self.file = file
         }
         
         public var description: String {
-            return propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary)
+            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
         }
     }
     
     public struct Folder: MessageStorageInternal, CustomStringConvertible {
         internal let nid: NID
-        internal let properties: [UInt16: Any?]
+        internal var properties: PropertiesReader
         internal let file: PstFile
         public internal(set) var children: [Folder] = []
         
-        internal init(nid: NID, properties: [UInt16: Any?], file: PstFile) {
+        internal init(nid: NID, properties: PropertiesReader, file: PstFile) {
             self.nid = nid
             self.properties = properties
             self.file = file
@@ -118,7 +116,7 @@ public class PstFile {
         
         public var description: String {
             func dumpFolder(folder: Folder, level: Int) -> String {
-                var s = propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary) + "\n"
+                var s = propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary) + "\n"
                 s += "\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)\n"
                 s += "\(String(repeating: "\t", count: level)) Content Count: \(folder.contentCount!)\n"
                 s += "\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)\n"
@@ -144,10 +142,10 @@ public class PstFile {
     public struct Message: MessageStorageInternal, CustomStringConvertible {
         internal let folder: Folder
         internal let nid: NID
-        internal let properties: [UInt16: Any?]
+        internal var properties: PropertiesReader
         internal let file: PstFile
         
-        internal init(folder: Folder, nid: NID, properties: [UInt16: Any?], file: PstFile) {
+        internal init(folder: Folder, nid: NID, properties: PropertiesReader, file: PstFile) {
             self.folder = folder
             self.nid = nid
             self.properties = properties
@@ -155,7 +153,7 @@ public class PstFile {
         }
         
         public var description: String {
-            return propertiesString(properties: properties, namedProperties: file.namedProperties?.dictionary)
+            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
         }
     }
 }

@@ -35,4 +35,8 @@ public enum PstReadError: Error {
     case invalidPropertySize(expected: UInt8, actual: UInt8)
     
     case missingProperty(property: PstPropertyId)
+    
+    case noSuchNode(nid: UInt32)
+    case corruptedHeapNode(dataBid: UInt64)
+    case invalidContext(expected: UInt8, actual: UInt8)
 }

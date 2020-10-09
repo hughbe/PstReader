@@ -8,10 +8,9 @@
 import DataStream
 
 /// [MS-PST] 1.3.1.1 Node Database (NDB) Layer
-/// The NDB layer consists of a database of nodes, which represents the lower-level storage facilities of
-/// the PST file format. From an implementation standpoint, the NDB layer consists of the header, file
-/// allocation information, blocks, nodes, and two BTrees: the Node BTree (NBT) and the Block BTree
-/// (BBT).
+/// The NDB layer consists of a database of nodes, which represents the lower-level storage facilities of the PST file format.
+/// From an implementation standpoint, the NDB layer consists of the header, file allocation information, blocks, nodes, and
+/// two BTrees: the Node BTree (NBT) and the Block BTree (BBT).
 /// The NBT contains references to all of the accessible nodes in the PST file. Its BTree implementation
 /// allows for efficient searches to locate any specific node. Each node reference is represented using a
 /// set of four properties that includes its NID, parent NID, data BID, and subnode BID. The data BID
@@ -39,7 +38,7 @@ internal class NDB {
     private var header: HEADER
     private var nodeTree = BTree<Node>()
     private var blockTree = BTree<Block>()
-    public var deferReadingNodes = true
+    public var deferReadingNodes = false
     
     init(dataStream: inout DataStream) throws {
         self.dataStream = dataStream

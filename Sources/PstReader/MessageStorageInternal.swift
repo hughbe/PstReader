@@ -8,13 +8,13 @@
 import MAPI
 
 internal protocol MessageStorageInternal: MessageStorage {
-    var properties: [UInt16: Any?] { get }
+    var properties: PropertiesReader { get set }
     var file: PstFile { get }
 }
 
 extension MessageStorageInternal {
     public func getProperty<T>(id: UInt16) -> T? {
-        return properties[id] as? T
+        return try? properties.getProperty(id: id) as? T
     }
 
     public func getProperty<T>(name: NamedProperty) -> T? {

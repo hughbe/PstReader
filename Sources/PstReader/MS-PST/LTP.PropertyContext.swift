@@ -19,25 +19,26 @@ internal extension LTP {
     /// searching the BTH for a key that matches the property identifier of the desired property, as the
     /// following data structure illustrates.
     struct PropertyContext {
-        public let properties: [UInt16: Any?]
+        public let properties: PropertiesReader
         
         public init (ndb: NDB, nid: NID) throws {
             guard let node = try ndb.lookupNode(nid: nid) else {
-                self.properties = [:]
-                return
+                throw PstReadError.noSuchNode(nid: nid.rawValue)
             }
 
             let subNodeTree = try ndb.readSubNodeBTree(bid: node.subDataBid)
             
             let heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
-            guard let firstBlock = heapOnNode.blocks.first, firstBlock.bClientSig! == .pc else {
-                self.properties = [:]
-                return
+            guard let firstBlock = heapOnNode.blocks.first else {
+                throw PstReadError.corruptedHeapNode(dataBid: node.dataBid.rawValue)
+            }
+            
+            guard firstBlock.bClientSig! == .pc else {
+                throw PstReadError.invalidContext(expected: ClientSignature.pc.rawValue, actual: firstBlock.bClientSig!.rawValue)
             }
 
             /// [MS-PST] 2.3.3.1 Accessing the PC BTHHEADER
-            /// The BTHHEADER structure of a PC is accessed through the hidUserRoot of the HNHDR structure of
-            /// the containing HN.
+            /// The BTHHEADER structure of a PC is accessed through the hidUserRoot of the HNHDR structure of the containing HN.
             let btreeOnHeap = try BTreeOnHeap<PCBTH>(heapOnNode: heapOnNode, hid: firstBlock.hidUserRoot!)
             func readValue(property: PCBTH) throws -> Any? {
                 func readData<T>(readFunc: (inout DataStream, Int) throws -> T) throws -> T? {
@@ -212,13 +213,13 @@ internal extension LTP {
                 }
             }
             
-            var result: [UInt16: Any?] = [:]
-            result.reserveCapacity(btreeOnHeap.bthList.count)
+            var propertyFactories: [UInt16: () throws -> Any?] = [:]
+            propertyFactories.reserveCapacity(btreeOnHeap.bthList.count)
             for property in btreeOnHeap.bthList {
-                result[property.wPropId] = try readValue(property: property)
+                propertyFactories[property.wPropId] = { try readValue(property: property) }
             }
             
-            self.properties = result
+            self.properties = PropertiesReader(propertyFactories: propertyFactories)
         }
     }
 }

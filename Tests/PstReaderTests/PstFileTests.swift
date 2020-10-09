@@ -12,12 +12,6 @@ import XCTest
 final class OutlookPstFileTests: XCTestCase {
     func testExample() throws {
         do {
-            //let data = try getData(name: "hughbellars@gmail.com")
-            //let pst = try PstFile(data: data)
-            //print(pst.rootFolder)
-        }
-        
-        do {
             let data = try getData(name: "backup")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)

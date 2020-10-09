@@ -47,20 +47,224 @@ internal extension LTP {
     /// illustrative purposes.
     /// The next sections describe actual data structures associated with Table Contexts:
     struct TableContext {
-        public let rows: [TableRow]
+        public let ndb: NDB
+        public let tcInfo: TCINFO
+        public let heapOnNode: HN
+        public let bTreeOnHeap: BTreeOnHeap<TCROWID>
+        public let subNodeTree: BTree<Node>?
+
+        public lazy var rows: [TableRow] = try! {
+            // The data rows may be held in line, or in a sub node
+            if tcInfo.hnidRows.hidType == .hid {
+                // Data is in line
+                let data = try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: tcInfo.hnidRows) { (dataStream, count) in
+                    return try dataStream.readBytes(count: count)
+                }
+                guard let dataForBlock = data else {
+                    return []
+                }
+                
+                let dataBlock = RowDataBlock(buffer: dataForBlock)
+                return try readTableData(dataBlocks: [dataBlock])
+            } else if tcInfo.hnidRows.nid.rawValue != 0 {
+                guard let subNode = subNodeTree?.lookup(key: UInt64(tcInfo.hnidRows.nid.rawValue)) else {
+                    return []
+                }
+                
+                if subNode.subDataBid.rawValue != 0 {
+                    fatalError("NYI: sub-nodes of sub-nodes")
+                }
+                
+                let dataBlocks = try ndb.readBlocks(dataBid: subNode.dataBid).map(RowDataBlock.init)
+                return try readTableData(dataBlocks: dataBlocks)
+            } else {
+                return []
+            }
+        }()
         
-        public init(ndb: NDB, nid: NID) throws {
-            guard let node = try ndb.lookupNode(nid: nid) else {
-                rows = []
-                return
+        func readValue(column: TCOLDESC, blockDataStream: inout DataStream, rowOffset: Int) throws -> Any? {
+            blockDataStream.position = rowOffset + Int(column.ibData)
+            func readData<T>(hnid: HNID, readFunc: (inout DataStream, Int) throws -> T) throws -> T? {
+                return try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: hnid, readFunc: readFunc)
+            }
+
+            switch column.tag.type {
+            case .unspecified:
+                return nil
+            case .null:
+                return nil
+            case .integer16:
+                fatalError("NYI: PtypInteger16")
+            case .integer32:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+
+                return try blockDataStream.read(endianess: .littleEndian) as UInt32
+            case .floating32:
+                fatalError("NYI: PtypFloating32")
+            case .floating64:
+                fatalError("NYI: PtypFloating64")
+            case .currency:
+                fatalError("NYI: PtypCurrency")
+            case .floatingTime:
+                fatalError("NYI: PtypCurrency")
+            case .errorCode:
+                fatalError("NYI: PtypErrorCode")
+            case .boolean:
+                if column.cbData != 1 {
+                    throw PstReadError.invalidPropertySize(expected: 1, actual: column.cbData)
+                }
+                
+                let rawValue: UInt8 = try blockDataStream.read()
+                return rawValue != 0x00
+            case .objectOrEmbeddedTable:
+                fatalError("NYI: PtypObject or PtypEmbeddedTable")
+            case .integer64:
+                if column.cbData != 8 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+
+                return try blockDataStream.read(endianess: .littleEndian) as UInt64
+            case .string8:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream)
+                if hnid.rawValue == 0 {
+                    return ""
+                }
+                
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii)! }
+            case .string:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream)
+                if hnid.rawValue == 0 {
+                    return ""
+                }
+                
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+            case .time:
+                // In a Table Context, time values are held in line
+                if column.cbData != 8 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+
+                return try FILETIME(dataStream: &blockDataStream).date
+            case .guid:
+                fatalError("NYI: PtypGuid")
+            case .serverId:
+                fatalError("NYI: PtypServerId")
+            case .restriction:
+                fatalError("NYI: PtypRestriction")
+            case .ruleAction:
+                fatalError("NYI: PtypRuleAction")
+            case .binary:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream)
+                if hnid.rawValue == 0 {
+                    return []
+                }
+                
+                return try readData(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
+            case .multipleInteger16:
+                fatalError("NYI: PtypMultipleInteger16")
+            case .multipleInteger32:
+                fatalError("NYI: PtypMultipleInteger32")
+            case .multipleFloating32:
+                fatalError("NYI: PtypMultipleFloating32")
+            case .multipleFloating64:
+                fatalError("NYI: PtypMultipleFloating64")
+            case .multipleCurrency:
+                fatalError("NYI: PtypMultipleCurrency")
+            case .multipleFloatingTime:
+                fatalError("NYI: PtypMultipleFloatingTime")
+            case .multipleInteger64:
+                fatalError("NYI: PtypMultipleInteger64")
+            case .multipleString8:
+                fatalError("NYI: PtypMultipleString8")
+            case .multipleString:
+                fatalError("NYI: PtypMultipleString")
+            case .multipleTime:
+                fatalError("NYI: PtypMultipleTime")
+            case .multipleGuid:
+                fatalError("NYI: PtypMultipleGuid")
+            case .multipleBinary:
+                fatalError("NYI: PtypMultipleBinary")
+            case .unknown:
+                return nil
+            }
+        }
+
+        
+        private func readTableData(dataBlocks: [RowDataBlock]) throws -> [TableRow] {
+            let rgCEBSize = Int((Float(tcInfo.cCols) / 8).rounded(.up))
+            
+            let blockTrailerSize: UInt32 = ndb.isUnicode ? 16 : 12
+            let rowsPerBlock = (ndb.blockSize - blockTrailerSize) / UInt32(tcInfo.rgib.bm)
+            
+            var rows: [TableRow] = []
+            rows.reserveCapacity(bTreeOnHeap.bthList.count)
+            for index in bTreeOnHeap.bthList {
+                let blockNum = Int(index.dwRowIndex / rowsPerBlock)
+                if blockNum >= dataBlocks.count {
+                    throw PstReadError.invalidBlockNum(blockNum: blockNum)
+                }
+                
+                let dataBlock = dataBlocks[blockNum]
+                let rowOffset = dataBlock.offset + Int(index.dwRowIndex % rowsPerBlock) * Int(tcInfo.rgib.bm)
+                let readPosition = rowOffset + Int(tcInfo.rgib.b1)
+                if readPosition > dataBlock.offset + dataBlock.count {
+                    throw PstReadError.invalidRowOffset(rowOffset: rowOffset)
+                }
+                
+                // Read the column existence data
+                var blockDataStream = DataStream(buffer: dataBlock.buffer)
+                blockDataStream.position = readPosition
+                
+                let rgCEB = try blockDataStream.readBytes(count: rgCEBSize)
+                var propertyFactories: [UInt16: () throws -> Any?] = [:]
+                propertyFactories.reserveCapacity(tcInfo.rgTCOLDESC.count)
+
+                for column in tcInfo.rgTCOLDESC {
+                    // Check if the column exists
+                    if rgCEB[Int(column.iBit) / 8] & (0x01 << (7 - (Int(column.iBit) % 8))) == 0 {
+                        continue
+                    }
+                    
+                    let value = { try readValue(column: column, blockDataStream: &blockDataStream, rowOffset: rowOffset) }
+                    propertyFactories[column.tag.id] = value
+                }
+                
+                rows.append(TableRow(nid: index.dwRowID, properties: PropertiesReader(propertyFactories: propertyFactories)))
             }
             
-            let subNodeTree = try ndb.readSubNodeBTree(bid: node.subDataBid)
+            return rows
+        }
+        
+        public init(ndb: NDB, nid: NID) throws {
+            self.ndb = ndb
+
+            guard let node = try ndb.lookupNode(nid: nid) else {
+                throw PstReadError.noSuchNode(nid: nid.rawValue)
+            }
             
-            let heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
-            guard let firstBlock = heapOnNode.blocks.first, firstBlock.bClientSig! == .tc else {
-                rows = []
-                return
+            self.subNodeTree = try ndb.readSubNodeBTree(bid: node.subDataBid)
+
+            self.heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
+            guard let firstBlock = heapOnNode.blocks.first else {
+                throw PstReadError.corruptedHeapNode(dataBid: node.dataBid.rawValue)
+            }
+            
+            guard firstBlock.bClientSig! == .tc else {
+                throw PstReadError.invalidContext(expected: ClientSignature.tc.rawValue, actual: firstBlock.bClientSig!.rawValue)
             }
             
             /// The hidUserRoot of the HNHDR points to the TC header, which is allocated from the heap with
@@ -71,7 +275,7 @@ internal extension LTP {
             /// allocation instead. Note that the subnode structure in the diagram is significantly simplified for
             /// illustrative purposes.
             var dataStream = heapOnNode.getDataStream(hid: firstBlock.hidUserRoot!)
-            let tcInfo = try TCINFO(dataStream: &dataStream)
+            self.tcInfo = try TCINFO(dataStream: &dataStream)
             
             /// [MS-PST] 2.3.4.3 The RowIndex
             /// The hidRowIndex member in TCINFO points to an embedded BTH that contains an array of
@@ -82,209 +286,12 @@ internal extension LTP {
             /// the implementation to decide what value to use for the primary key. However, an NID value is used as
             /// the primary key because of its uniqueness within a PST.
             /// The following is the layout of the BTH data record used in the RowIndex.
-            let btreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
-
-            func readValue(column: TCOLDESC, blockDataStream: inout DataStream, rowOffset: Int) throws -> Any? {
-                blockDataStream.position = rowOffset + Int(column.ibData)
-                func readData<T>(hnid: HNID, readFunc: (inout DataStream, Int) throws -> T) throws -> T? {
-                    return try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: hnid, readFunc: readFunc)
-                }
-
-                switch column.tag.type {
-                case .unspecified:
-                    return nil
-                case .null:
-                    return nil
-                case .integer16:
-                    fatalError("NYI: PtypInteger16")
-                case .integer32:
-                    if column.cbData != 4 {
-                        throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
-                    }
-
-                    return try blockDataStream.read(endianess: .littleEndian) as UInt32
-                case .floating32:
-                    fatalError("NYI: PtypFloating32")
-                case .floating64:
-                    fatalError("NYI: PtypFloating64")
-                case .currency:
-                    fatalError("NYI: PtypCurrency")
-                case .floatingTime:
-                    fatalError("NYI: PtypCurrency")
-                case .errorCode:
-                    fatalError("NYI: PtypErrorCode")
-                case .boolean:
-                    if column.cbData != 1 {
-                        throw PstReadError.invalidPropertySize(expected: 1, actual: column.cbData)
-                    }
-                    
-                    let rawValue: UInt8 = try blockDataStream.read()
-                    return rawValue != 0x00
-                case .objectOrEmbeddedTable:
-                    fatalError("NYI: PtypObject or PtypEmbeddedTable")
-                case .integer64:
-                    if column.cbData != 8 {
-                        throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
-                    }
-
-                    return try blockDataStream.read(endianess: .littleEndian) as UInt64
-                case .string8:
-                    if column.cbData != 4 {
-                        throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
-                    }
-                    
-                    let hnid = try HNID(dataStream: &blockDataStream)
-                    if hnid.rawValue == 0 {
-                        return ""
-                    }
-                    
-                    return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii)! }
-                case .string:
-                    if column.cbData != 4 {
-                        throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
-                    }
-                    
-                    let hnid = try HNID(dataStream: &blockDataStream)
-                    if hnid.rawValue == 0 {
-                        return ""
-                    }
-                    
-                    return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
-                case .time:
-                    // In a Table Context, time values are held in line
-                    if column.cbData != 8 {
-                        throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
-                    }
-
-                    return try FILETIME(dataStream: &blockDataStream).date
-                case .guid:
-                    fatalError("NYI: PtypGuid")
-                case .serverId:
-                    fatalError("NYI: PtypServerId")
-                case .restriction:
-                    fatalError("NYI: PtypRestriction")
-                case .ruleAction:
-                    fatalError("NYI: PtypRuleAction")
-                case .binary:
-                    if column.cbData != 4 {
-                        throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
-                    }
-                    
-                    let hnid = try HNID(dataStream: &blockDataStream)
-                    if hnid.rawValue == 0 {
-                        return []
-                    }
-                    
-                    return try readData(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
-                case .multipleInteger16:
-                    fatalError("NYI: PtypMultipleInteger16")
-                case .multipleInteger32:
-                    fatalError("NYI: PtypMultipleInteger32")
-                case .multipleFloating32:
-                    fatalError("NYI: PtypMultipleFloating32")
-                case .multipleFloating64:
-                    fatalError("NYI: PtypMultipleFloating64")
-                case .multipleCurrency:
-                    fatalError("NYI: PtypMultipleCurrency")
-                case .multipleFloatingTime:
-                    fatalError("NYI: PtypMultipleFloatingTime")
-                case .multipleInteger64:
-                    fatalError("NYI: PtypMultipleInteger64")
-                case .multipleString8:
-                    fatalError("NYI: PtypMultipleString8")
-                case .multipleString:
-                    fatalError("NYI: PtypMultipleString")
-                case .multipleTime:
-                    fatalError("NYI: PtypMultipleTime")
-                case .multipleGuid:
-                    fatalError("NYI: PtypMultipleGuid")
-                case .multipleBinary:
-                    fatalError("NYI: PtypMultipleBinary")
-                case .unknown:
-                    return nil
-                }
-            }
-            
-            func readTableData(dataBlocks: [RowDataBlock]) throws -> [TableRow] {
-                let rgCEBSize = Int((Float(tcInfo.cCols) / 8).rounded(.up))
-                
-                let blockTrailerSize: UInt32 = ndb.isUnicode ? 16 : 12
-                let rowsPerBlock = (ndb.blockSize - blockTrailerSize) / UInt32(tcInfo.rgib.bm)
-                
-                var rows: [TableRow] = []
-                rows.reserveCapacity(btreeOnHeap.bthList.count)
-                for index in btreeOnHeap.bthList {
-                    let blockNum = Int(index.dwRowIndex / rowsPerBlock)
-                    if blockNum >= dataBlocks.count {
-                        throw PstReadError.invalidBlockNum(blockNum: blockNum)
-                    }
-                    
-                    let dataBlock = dataBlocks[blockNum]
-                    let rowOffset = dataBlock.offset + Int(index.dwRowIndex % rowsPerBlock) * Int(tcInfo.rgib.bm)
-                    let readPosition = rowOffset + Int(tcInfo.rgib.b1)
-                    if readPosition > dataBlock.offset + dataBlock.count {
-                        throw PstReadError.invalidRowOffset(rowOffset: rowOffset)
-                    }
-                    
-                    // Read the column existence data
-                    var blockDataStream = DataStream(buffer: dataBlock.buffer)
-                    blockDataStream.position = readPosition
-                    
-                    let rgCEB = try blockDataStream.readBytes(count: rgCEBSize)
-                    var properties: [UInt16: Any?] = [:]
-                    properties.reserveCapacity(tcInfo.rgTCOLDESC.count)
-
-                    for column in tcInfo.rgTCOLDESC {
-                        // Check if the column exists
-                        if rgCEB[Int(column.iBit) / 8] & (0x01 << (7 - (Int(column.iBit) % 8))) == 0 {
-                            continue
-                        }
-                        
-                        let value = try readValue(column: column, blockDataStream: &blockDataStream, rowOffset: rowOffset)
-                        properties[column.tag.id] = value
-                    }
-                    
-                    rows.append(TableRow(nid: index.dwRowID, properties: properties))
-                }
-                
-                return rows
-            }
-            
-            // The data rows may be held in line, or in a sub node
-            if tcInfo.hnidRows.hidType == .hid {
-                // Data is in line
-                let data = try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: tcInfo.hnidRows) { (dataStream, count) in
-                    return try dataStream.readBytes(count: count)
-                }
-                guard let dataForBlock = data else {
-                    self.rows = []
-                    return
-                }
-                
-                let dataBlock = RowDataBlock(buffer: dataForBlock)
-                self.rows = try readTableData(dataBlocks: [dataBlock])
-            } else if tcInfo.hnidRows.nid.rawValue != 0 {
-                guard let subNode = subNodeTree?.lookup(key: UInt64(tcInfo.hnidRows.nid.rawValue)) else {
-                    self.rows = []
-                    return
-                }
-                
-                if subNode.subDataBid.rawValue != 0 {
-                    fatalError("NYI: sub-nodes of sub-nodes")
-                }
-                
-                let dataBlocks = try ndb.readBlocks(dataBid: subNode.dataBid).map(RowDataBlock.init)
-                //let dataBlocks = try ltp.readSubNodeRowDataBlocks(subNodeTree: subNodeTree, nid: tcInfo.hnidRows.nid)
-                self.rows = try readTableData(dataBlocks: dataBlocks)
-            } else {
-                self.rows = []
-                return
-            }
+            self.bTreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
         }
         
         public struct TableRow {
-            public let nid: NID
-            public let properties: [UInt16: Any?]
+            public var nid: NID
+            public var properties: PropertiesReader
         }
         
         private struct RowDataBlock {
