@@ -144,7 +144,7 @@ internal extension LTP {
                 case .currency:
                     fatalError("NYI: PtypCurrency")
                 case .floatingTime:
-                    fatalError("NYI: PtypCurrency")
+                    fatalError("NYI: PtypFloatingTime")
                 case .errorCode:
                     fatalError("NYI: PtypErrorCode")
                 case .boolean:
@@ -197,19 +197,19 @@ internal extension LTP {
                 case .binary:
                     return try readData { Data(try $0.readBytes(count: $1)) }
                 case .multipleInteger16:
-                    fatalError("NYI: PtypMultipleInteger16")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.read(endianess: .littleEndian) as UInt16 }
                 case .multipleInteger32:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.read(endianess: .littleEndian) as UInt32 }
                 case .multipleFloating32:
-                    fatalError("NYI: PtypMultipleFloating32")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.readFloat(endianess: .littleEndian) }
                 case .multipleFloating64:
-                    fatalError("NYI: PtypMultipleFloating64")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.readDouble(endianess: .littleEndian) }
                 case .multipleCurrency:
                     fatalError("NYI: PtypMultipleCurrency")
                 case .multipleFloatingTime:
                     fatalError("NYI: PtypMultipleFloatingTime")
                 case .multipleInteger64:
-                    fatalError("NYI: PtypMultipleInteger64")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.read(endianess: .littleEndian) as UInt64 }
                 case .multipleString8:
                     return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .ascii)! }
                 case .multipleString:

@@ -129,7 +129,11 @@ internal extension LTP {
             case .null:
                 return nil
             case .integer16:
-                fatalError("NYI: PtypInteger16")
+                if column.cbData != 2 {
+                    throw PstReadError.invalidPropertySize(expected: 2, actual: column.cbData)
+                }
+
+                return try blockDataStream.read(endianess: .littleEndian) as UInt16
             case .integer32:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
@@ -137,13 +141,21 @@ internal extension LTP {
 
                 return try blockDataStream.read(endianess: .littleEndian) as UInt32
             case .floating32:
-                fatalError("NYI: PtypFloating32")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+
+                return try blockDataStream.readFloat(endianess: .littleEndian)
             case .floating64:
-                fatalError("NYI: PtypFloating64")
+                if column.cbData != 8 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+
+                return try blockDataStream.readDouble(endianess: .littleEndian)
             case .currency:
                 fatalError("NYI: PtypCurrency")
             case .floatingTime:
-                fatalError("NYI: PtypCurrency")
+                fatalError("NYI: PtypFloatingTime")
             case .errorCode:
                 fatalError("NYI: PtypErrorCode")
             case .boolean:
@@ -237,7 +249,6 @@ internal extension LTP {
                 return nil
             }
         }
-
         
         private func readTableData(dataBlocks: [RowDataBlock]) throws -> [TableRow] {
             let rgCEBSize = Int((Float(tcInfo.cCols) / 8).rounded(.up))
