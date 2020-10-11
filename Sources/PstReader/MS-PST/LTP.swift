@@ -5,11 +5,6 @@
 //  Created by Hugh Bellamy on 25/09/2020.
 //
 
-import DataStream
-import Foundation
-import MAPI
-import WindowsDataTypes
-
 /// [MS-PST] 1.3.1.2 Lists, Tables, and Properties (LTP) Layer
 /// The LTP layer implements higher-level concepts on top of the NDB construct. The core elements of the
 /// LTP Layer are the Property Context (PC) and Table Context (TC). A PC represents a collection of
@@ -20,11 +15,4 @@ import WindowsDataTypes
 /// To implement PCs and TCs efficiently, the LTP layer employs the following two types of data structures
 /// on top of each NDB node.
 internal class LTP {
-    public static func readPropertyContext(ndb: NDB, nid: NID) throws -> PropertyContext {
-        return try PropertyContext(ndb: ndb, nid: nid)
-    }
-    
-    public static func readTable(ndb: NDB, nid: NID) throws -> TableContext {
-        return try TableContext(ndb: ndb, nid: nid)
-    }
 }

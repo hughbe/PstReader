@@ -220,18 +220,17 @@ internal class NDB {
         }
         
         if node.subDataBid.rawValue != 0 {
-            fatalError("NYI: Sub-node of sub-node")
+            guard let subNodeTree = try readSubNodeBTree(bid: node.subDataBid) else {
+                return []
+            }
+
+            return try readSubNodeBlock(subNodeTree: subNodeTree, nid: nid)
         }
         
         return try readBlock(dataBid: node.dataBid)
     }
     
     public func readBlock(dataBid: BID) throws -> [UInt8] {
-        /*
-        var buffer: [UInt8] = []
-        var offset = 0
-        return try readBlockInternal(dataBid: dataBid, buffer: &buffer, offset: &offset)
-        */
         let blocks = try readBlocks(dataBid: dataBid)
         let totalSize = blocks.map { $0.count }.reduce(0, +)
         var result: [UInt8] = []
@@ -242,53 +241,4 @@ internal class NDB {
         
         return result
     }
-
-    /*
-    // Return all the data blocks referenced by a particular data Id, concatenating them into a single buffer
-    private mutating func readBlockInternal(dataBid: BID, buffer: inout [UInt8], offset: inout Int) throws -> [UInt8] {
-        guard let block = try lookupBlock(bid: dataBid) else {
-            // fatalError("Data block does not exist")
-            return []
-        }
-        
-        buffer.append(contentsOf: [UInt8](repeating: 0, count: Int(block.length)))
-        let read = try buffer[offset...].withUnsafeMutableBufferPointer {
-            try readAndDecompress(block: block, buffer: $0)
-        }
-
-        if block.isInternal {
-            var blockDataStream = DataStream(buffer: buffer)
-            let btype: UInt8 = try blockDataStream.read()
-            if btype != 0x01 {
-                throw PstReadError.invalidBtype(btype: btype)
-            }
-            
-            let cLevel: UInt8 = try blockDataStream.read()
-            blockDataStream.position = 0
-            
-            switch cLevel {
-            case 0x01:
-                let xBlock = try XBLOCK(dataStream: &dataStream, isUnicode: isUnicode)
-                for bid in xBlock.rgbid {
-                    // Recurse.
-                    // Pass what we know here of the total length through, so that it can be returned on the first block
-                    try readBlocks(dataBid: bid, blocks: &blocks, totalLength: totalLength != 0 ? totalLength : xBlock.lcbTotal)
-                }
-            case 0x02:
-                let xxBlock = try XXBLOCK(dataStream: &dataStream, isUnicode: isUnicode)
-                for bid in xxBlock.rgbid {
-                    // Recurse.
-                    // Pass what we know here of the total length through, so that it can be returned on the first block
-                    try readBlocks(dataBid: bid, blocks: &blocks, totalLength: totalLength != 0 ? totalLength : xxBlock.lcbTotal)
-                }
-            default:
-                throw PstReadError.invalidCLevel(cLevel: cLevel)
-            }
-        } else {
-            // Key for cyclic algorithm is the low 32 bits of the BID, so supply it in case it's needed
-            decrypt(buffer: &buffer, key: UInt32(dataBid.rawValue & 0xFFFF), offset: offset, count: read)
-            blocks.append(buffer)
-        }
-    }
-     */
 }

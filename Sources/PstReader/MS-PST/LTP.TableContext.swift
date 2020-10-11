@@ -46,12 +46,47 @@ internal extension LTP {
     /// allocation instead. Note that the subnode structure in the diagram is significantly simplified for
     /// illustrative purposes.
     /// The next sections describe actual data structures associated with Table Contexts:
-    struct TableContext {
+    struct TableContext: LTPContext {
         public let ndb: NDB
         public let tcInfo: TCINFO
         public let heapOnNode: HN
         public let bTreeOnHeap: BTreeOnHeap<TCROWID>
         public let subNodeTree: BTree<Node>?
+        
+        init(ndb: NDB, subNodeTree: BTree<Node>?, dataBid: BID) throws {
+            self.subNodeTree = subNodeTree
+            self.ndb = ndb
+
+            self.heapOnNode = try HN(ndb: ndb, dataBid: dataBid)
+            guard let firstBlock = heapOnNode.blocks.first else {
+                throw PstReadError.corruptedHeapNode(dataBid: dataBid.rawValue)
+            }
+            
+            guard firstBlock.bClientSig! == .tc else {
+                throw PstReadError.invalidContext(expected: ClientSignature.tc.rawValue, actual: firstBlock.bClientSig!.rawValue)
+            }
+            
+            /// The hidUserRoot of the HNHDR points to the TC header, which is allocated from the heap with
+            /// HID=0x20. The TC header contains a TCINFO structure, followed by an array of column descriptors.
+            /// The TCINFO structure contains pointers that point to the RowIndex (hidRowIndex) and The Row
+            /// Matrix (hnidRowData). The RowIndex is allocated off the heap, whereas the Row Matrix is stored in
+            /// the subnode (in rare cases where the TC is very small, the Row Matrix can be stored in a heap
+            /// allocation instead. Note that the subnode structure in the diagram is significantly simplified for
+            /// illustrative purposes.
+            var dataStream = heapOnNode.getDataStream(hid: firstBlock.hidUserRoot!)
+            self.tcInfo = try TCINFO(dataStream: &dataStream)
+            
+            /// [MS-PST] 2.3.4.3 The RowIndex
+            /// The hidRowIndex member in TCINFO points to an embedded BTH that contains an array of
+            /// (dwRowID, dwRowIndex) value pairs, which provides a 32-bit primary index for searching the Row
+            /// Matrix. Simply put, the RowIndex maps dwRowID, a unique identifier, to the index of a particular
+            /// row in the Row Matrix.
+            /// The RowIndex itself is a generic mechanism to provide a 32-bit primary key and therefore it is up to
+            /// the implementation to decide what value to use for the primary key. However, an NID value is used as
+            /// the primary key because of its uniqueness within a PST.
+            /// The following is the layout of the BTH data record used in the RowIndex.
+            self.bTreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
+        }
 
         public lazy var rows: [TableRow] = try! {
             // The data rows may be held in line, or in a sub node
@@ -247,46 +282,6 @@ internal extension LTP {
             }
             
             return rows
-        }
-        
-        public init(ndb: NDB, nid: NID) throws {
-            self.ndb = ndb
-
-            guard let node = try ndb.lookupNode(nid: nid) else {
-                throw PstReadError.noSuchNode(nid: nid.rawValue)
-            }
-            
-            self.subNodeTree = try ndb.readSubNodeBTree(bid: node.subDataBid)
-
-            self.heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
-            guard let firstBlock = heapOnNode.blocks.first else {
-                throw PstReadError.corruptedHeapNode(dataBid: node.dataBid.rawValue)
-            }
-            
-            guard firstBlock.bClientSig! == .tc else {
-                throw PstReadError.invalidContext(expected: ClientSignature.tc.rawValue, actual: firstBlock.bClientSig!.rawValue)
-            }
-            
-            /// The hidUserRoot of the HNHDR points to the TC header, which is allocated from the heap with
-            /// HID=0x20. The TC header contains a TCINFO structure, followed by an array of column descriptors.
-            /// The TCINFO structure contains pointers that point to the RowIndex (hidRowIndex) and The Row
-            /// Matrix (hnidRowData). The RowIndex is allocated off the heap, whereas the Row Matrix is stored in
-            /// the subnode (in rare cases where the TC is very small, the Row Matrix can be stored in a heap
-            /// allocation instead. Note that the subnode structure in the diagram is significantly simplified for
-            /// illustrative purposes.
-            var dataStream = heapOnNode.getDataStream(hid: firstBlock.hidUserRoot!)
-            self.tcInfo = try TCINFO(dataStream: &dataStream)
-            
-            /// [MS-PST] 2.3.4.3 The RowIndex
-            /// The hidRowIndex member in TCINFO points to an embedded BTH that contains an array of
-            /// (dwRowID, dwRowIndex) value pairs, which provides a 32-bit primary index for searching the Row
-            /// Matrix. Simply put, the RowIndex maps dwRowID, a unique identifier, to the index of a particular
-            /// row in the Row Matrix.
-            /// The RowIndex itself is a generic mechanism to provide a 32-bit primary key and therefore it is up to
-            /// the implementation to decide what value to use for the primary key. However, an NID value is used as
-            /// the primary key because of its uniqueness within a PST.
-            /// The following is the layout of the BTH data record used in the RowIndex.
-            self.bTreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
         }
         
         public struct TableRow {

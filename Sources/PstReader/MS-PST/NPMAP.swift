@@ -26,7 +26,7 @@ internal struct NPMAP {
     public private(set) var dictionary: [NamedProperty: UInt16]
     
     public init(ndb: NDB) throws {
-        let propertyContext = try LTP.readPropertyContext(ndb: ndb, nid: NID.SpecialInternal.nameToIdMap)
+        let propertyContext = try LTP.PropertyContext(ndb: ndb, nid: NID.SpecialInternal.nameToIdMap)
 
         /// [MS-PST] 2.4.7.2 GUID Stream
         /// The GUID Stream is a flat array of 16-byte GUID values that contains the GUIDs associated with all the property sets used in all the named properties in the PST.

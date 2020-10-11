@@ -95,5 +95,11 @@ public struct NID {
 
         /// Search Gatherer Folder Queue (section 2.4.8.5.3).
         public static let searchGathererFolderQueue = NID(rawValue: 0x321)
+        
+        /// NID_ATTACHMENT_TABLE
+        public static let attachmentTable = NID(rawValue: 0x671)
+
+        /// NID_RECIPIENT_TABLE
+        public static let recipientTable = NID(rawValue: 0x692)
     }
 }

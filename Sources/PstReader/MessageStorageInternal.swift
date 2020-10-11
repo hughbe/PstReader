@@ -8,7 +8,7 @@
 import MAPI
 
 internal protocol MessageStorageInternal: MessageStorage {
-    var properties: PropertiesReader { get set }
+    var properties: PropertiesReader { get }
     var file: PstFile { get }
 }
 

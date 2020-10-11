@@ -11,26 +11,19 @@ import WindowsDataTypes
 
 internal extension LTP {
     /// [MS-PST] 2.3.3 Property Context (PC)
-    /// The Property Context is built directly on top of a BTH. The existence of a PC is indicated at the HN
-    /// level, where bClientSig is set to bTypePC. Implementation-wise, the PC is simply a BTH with cbKey
-    /// set to 2 and cbEnt set to 6 (see section 2.3.3.3). The following section explains the layout of a PC
+    /// The Property Context is built directly on top of a BTH. The existence of a PC is indicated at the HN level, where bClientSig is set to bTypePC.
+    /// Implementation-wise, the PC is simply a BTH with cbKey set to 2 and cbEnt set to 6 (see section 2.3.3.3). The following section explains the layout of a PC
     /// BTH record.
-    /// Each property is stored as an entry in the BTH. Accessing a specific property is just a matter of
-    /// searching the BTH for a key that matches the property identifier of the desired property, as the
-    /// following data structure illustrates.
-    struct PropertyContext {
+    /// Each property is stored as an entry in the BTH. Accessing a specific property is just a matter of searching the BTH for a key that matches the property
+    /// identifier of the desired property, as the following data structure illustrates.
+    struct PropertyContext: LTPContext {
         public let properties: PropertiesReader
+        public let subNodeTree: BTree<Node>?
         
-        public init (ndb: NDB, nid: NID) throws {
-            guard let node = try ndb.lookupNode(nid: nid) else {
-                throw PstReadError.noSuchNode(nid: nid.rawValue)
-            }
-
-            let subNodeTree = try ndb.readSubNodeBTree(bid: node.subDataBid)
-            
-            let heapOnNode = try HN(ndb: ndb, dataBid: node.dataBid)
+        init(ndb: NDB, subNodeTree: BTree<Node>?, dataBid: BID) throws {
+            let heapOnNode = try HN(ndb: ndb, dataBid: dataBid)
             guard let firstBlock = heapOnNode.blocks.first else {
-                throw PstReadError.corruptedHeapNode(dataBid: node.dataBid.rawValue)
+                throw PstReadError.corruptedHeapNode(dataBid: dataBid.rawValue)
             }
             
             guard firstBlock.bClientSig! == .pc else {
@@ -157,7 +150,26 @@ internal extension LTP {
                 case .boolean:
                     return property.dwValueHnid != 0x00
                 case .objectOrEmbeddedTable:
-                    fatalError("NYI: PtypObject or PtypEmbeddedTable")
+                    /// [MS-PST] 2.3.3.5 PtypObject Properties
+                    /// When a property of type PtypObject is stored in a PC, the dwValueHnid value described in section 2.3.3.3
+                    /// points to a heap allocation that contains a structure that defines the size and location of the object data.
+                    if property.dwValueHnid == 0 {
+                        return nil
+                    }
+                    
+                    return try readData { (dataStream, count) -> Data? in
+                        /// Nid (4 bytes): The subnode identifier that contains the object data.
+                        let nid: NID = try NID(dataStream: &dataStream)
+                        
+                        /// ulSize (4 bytes): The total size of the object.
+                        let _: UInt32 = try dataStream.read(endianess: .littleEndian)
+                        
+                        guard let subNodeTree = subNodeTree else {
+                            return nil
+                        }
+                        
+                        return Data(try ndb.readSubNodeBlock(subNodeTree: subNodeTree, nid: nid))
+                    }
                 case .integer64:
                     return try readData { (dataStream, count) in try dataStream.read(endianess: .littleEndian) as UInt64 }
                 case .string8:
@@ -219,6 +231,7 @@ internal extension LTP {
                 propertyFactories[property.wPropId] = { try readValue(property: property) }
             }
             
+            self.subNodeTree = subNodeTree
             self.properties = PropertiesReader(propertyFactories: propertyFactories)
         }
     }

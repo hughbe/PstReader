@@ -218,7 +218,7 @@ final class OutlookPstFileTests: XCTestCase {
                 }
                 
                 let inboxFolder = pst.rootFolder!["Top of Outlook data file"]!["Inbox"]!
-                let messages = try pst.getMessages(folder: inboxFolder)
+                let messages = try inboxFolder.getMessages()
                 XCTAssertEqual(1, messages.count)
                 XCTAssertEqual(0x00000016, messages[0].ltpRowVer)
                 XCTAssertEqual(22, messages[0].ltpRowId)
@@ -241,6 +241,40 @@ final class OutlookPstFileTests: XCTestCase {
                 XCTAssertEqual(Data([0xF2, 0x2D, 0x19, 0x1D, 0xC4, 0xDB, 0x71, 0x45, 0x94, 0xF1, 0x8E, 0x02, 0x8B, 0x36, 0xFB, 0xC0]), messages[0].searchKey)
                 XCTAssertEqual(1600247579.0, messages[0].lastModificationTime?.timeIntervalSince1970)
     
+                XCTAssertEqual(0, messages[0].recipients.count)
+                XCTAssertEqual(0, messages[0].attachments.count)
+                
+                let details = try messages[0].getMessageDetails()
+                XCTAssertEqual(1, details.recipients.count)
+                XCTAssertEqual("pstreadertests@outlook.com", details.recipients[0].emailAddress)
+                XCTAssertEqual(0x00000015, details.recipients[0].ltpRowVer)
+                XCTAssertEqual(.primaryRecipient, details.recipients[0].recipientType)
+                let recipientRecipientEntryId = details.recipients[0].recipientEntryId as! OneOffEntryID
+                XCTAssertEqual(0, recipientRecipientEntryId.flags)
+                XCTAssertEqual(UUID(uuidString: "812B1FA4-BEA3-1019-9D6E-00DD010F5402"), recipientRecipientEntryId.providerUid)
+                XCTAssertEqual("Hugh Bellamy", recipientRecipientEntryId.displayName)
+                XCTAssertEqual("SMTP", recipientRecipientEntryId.addressType)
+                XCTAssertEqual("pstreadertests@outlook.com", recipientRecipientEntryId.emailAddress)
+                XCTAssertEqual("SMTP", details.recipients[0].addressType)
+                XCTAssertEqual(Data([0x53, 0x4D, 0x54, 0x50, 0x3A, 0x50, 0x53, 0x54, 0x52, 0x45, 0x41, 0x44, 0x45, 0x52, 0x54, 0x45, 0x53, 0x54, 0x53, 0x40, 0x4F, 0x55, 0x54, 0x4C, 0x4F, 0x4F, 0x4B, 0x2E, 0x43, 0x4F, 0x4D, 0x00]), details.recipients[0].searchKey)
+                XCTAssertEqual(.mailUser, details.recipients[0].displayType)
+                XCTAssertEqual("pstreadertests@outlook.com", details.recipients[0].smtpAddress)
+                XCTAssertEqual("Hugh Bellamy", details.recipients[0].transmittableDisplayName)
+                XCTAssertEqual(.mailUser, details.recipients[0].objectType)
+                XCTAssertTrue(details.recipients[0].responsibility!)
+                XCTAssertEqual(0x00000015, details.recipients[0].ltpRowId)
+                let recipientEntryId = details.recipients[0].entryId as! OneOffEntryID
+                XCTAssertEqual(0, recipientEntryId.flags)
+                XCTAssertEqual(UUID(uuidString: "812B1FA4-BEA3-1019-9D6E-00DD010F5402"), recipientEntryId.providerUid)
+                XCTAssertEqual("Hugh Bellamy", recipientEntryId.displayName)
+                XCTAssertEqual("SMTP", recipientEntryId.addressType)
+                XCTAssertEqual("pstreadertests@outlook.com", recipientEntryId.emailAddress)
+                XCTAssertFalse(details.recipients[0].sendRichInfo!)
+                XCTAssertEqual(Data([0x00, 0x00, 0x00, 0x00, 0x81, 0x2B, 0x1F, 0xA4, 0xBE, 0xA3, 0x10, 0x19, 0x9D, 0x6E, 0x00, 0xDD, 0x01, 0x0F, 0x54, 0x02, 0x00, 0x00, 0x01, 0x80, 0x48, 0x00, 0x75, 0x00, 0x67, 0x00, 0x68, 0x00, 0x20, 0x00, 0x42, 0x00, 0x65, 0x00, 0x6C, 0x00, 0x6C, 0x00, 0x61, 0x00, 0x6D, 0x00, 0x79, 0x00, 0x00, 0x00, 0x53, 0x00, 0x4D, 0x00, 0x54, 0x00, 0x50, 0x00, 0x00, 0x00, 0x70, 0x00, 0x73, 0x00, 0x74, 0x00, 0x72, 0x00, 0x65, 0x00, 0x61, 0x00, 0x64, 0x00, 0x65, 0x00, 0x72, 0x00, 0x74, 0x00, 0x65, 0x00, 0x73, 0x00, 0x74, 0x00, 0x73, 0x00, 0x40, 0x00, 0x6F, 0x00, 0x75, 0x00, 0x74, 0x00, 0x6C, 0x00, 0x6F, 0x00, 0x6F, 0x00, 0x6B, 0x00, 0x2E, 0x00, 0x63, 0x00, 0x6F, 0x00, 0x6D, 0x00, 0x00, 0x00]), details.recipients[0].recordKey)
+                XCTAssertEqual(.primaryRecipient, details.recipients[0].recipientType)
+
+                XCTAssertEqual(0, messages[0].attachments.count)
+                
                 XCTAssertEqual(Data([0x01, 0x00, 0x00, 0x00, 0x10, 0x7F, 0x6F, 0x20, 0x1A, 0x95, 0x0D, 0x45, 0x9D, 0x31, 0xE2, 0x5C, 0xD4, 0x07, 0xC0, 0x2F, 0x01, 0x00, 0x00, 0x00]), pst.messageStore!.replVersionHistory)
                 XCTAssertEqual(Data([0x43, 0xEE, 0x6C, 0x66, 0xA7, 0x46, 0xEF, 0x44, 0x8E, 0xF7, 0xA3, 0xFB, 0x87, 0xFF, 0x25, 0xE6]), pst.messageStore!.recordKey)
                 XCTAssertEqual(0, pst.messageStore!.ipmWastebasketEntryId!.rgbFlags)
