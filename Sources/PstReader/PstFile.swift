@@ -100,6 +100,10 @@ public class PstFile {
             return children.first { $0.displayName == child }
         }
         
+        public var associatedContentCount: UInt32? {
+            return getProperty(id: .tagAssociatedContentCount)
+        }
+        
         public var description: String {
             func dumpFolder(folder: Folder, level: Int) -> String {
                 var s = propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary) + "\n"
@@ -132,6 +136,8 @@ public class PstFile {
         internal var file: PstFile {
             return folder.file
         }
+        
+        public private(set) var hasDetails: Bool = false
         
         public private(set) var recipients: [Recipient] = []
         public private(set) var attachments: [Attachment] = []
@@ -216,6 +222,7 @@ public class PstFile {
                 }
             }
 
+            message.hasDetails = true
             return message
         }
         
@@ -262,6 +269,8 @@ public class PstFile {
             return message.folder.file
         }
         
+        public private(set) var hasDetails: Bool = false
+        
         internal init(message: Message, nid: NID, subNodeTree: BTree<Node>, properties: PropertiesReader) {
             self.message = message
             self.nid = nid
@@ -278,7 +287,9 @@ public class PstFile {
             /// tree is used to store the binary content. The number of Attachment object subnodes in a Message
             /// object MUST equal the number of rows in the Attachment Table.
             let propertyContext = try LTP.PropertyContext(ndb: file.ndb, nid: nid, subNodeTree: subNodeTree)
-            return Attachment(message: message, nid: nid, subNodeTree: subNodeTree, properties: propertyContext.properties)
+            var attachment = Attachment(message: message, nid: nid, subNodeTree: subNodeTree, properties: propertyContext.properties)
+            attachment.hasDetails = true
+            return attachment
         }
         
         public var description: String {

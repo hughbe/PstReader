@@ -221,7 +221,7 @@ final class OutlookPstFileTests: XCTestCase {
                 let messages = try inboxFolder.getMessages()
                 XCTAssertEqual(1, messages.count)
                 XCTAssertEqual(0x00000016, messages[0].ltpRowVer)
-                XCTAssertEqual(22, messages[0].ltpRowId)
+                XCTAssertEqual(2097188, messages[0].ltpRowId)
                 XCTAssertEqual("Hugh Bellamy", messages[0].sentRepresentingName)
                 XCTAssertEqual(1600247575.0, messages[0].clientSubmitTime?.timeIntervalSince1970)
                 XCTAssertEqual(.normal, messages[0].sensitivity)
@@ -262,7 +262,7 @@ final class OutlookPstFileTests: XCTestCase {
                 XCTAssertEqual("Hugh Bellamy", details.recipients[0].transmittableDisplayName)
                 XCTAssertEqual(.mailUser, details.recipients[0].objectType)
                 XCTAssertTrue(details.recipients[0].responsibility!)
-                XCTAssertEqual(0x00000015, details.recipients[0].ltpRowId)
+                XCTAssertEqual(19, details.recipients[0].ltpRowId)
                 let recipientEntryId = details.recipients[0].entryId as! OneOffEntryID
                 XCTAssertEqual(0, recipientEntryId.flags)
                 XCTAssertEqual(UUID(uuidString: "812B1FA4-BEA3-1019-9D6E-00DD010F5402"), recipientEntryId.providerUid)

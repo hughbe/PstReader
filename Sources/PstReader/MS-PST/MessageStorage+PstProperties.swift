@@ -233,7 +233,7 @@ public extension MessageStorage {
     /// have no data rows, and MUST contain the following property columns.
     /// 0x67F2 PtypInteger32 PidTagLtpRowId LTP Row ID
     var ltpRowId: UInt32? {
-        return getProperty(id: PstPropertyId.tagLtpRowVer.rawValue)
+        return getProperty(id: PstPropertyId.tagLtpRowId.rawValue)
     }
 
     /// [MS-PST] 2.1.2 Properties
