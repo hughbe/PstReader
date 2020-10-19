@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.3.1 HN (Heap-on-Node)
 /// The Heap-on-Node defines a standard heap over a node's data stream. Taking advantage of the

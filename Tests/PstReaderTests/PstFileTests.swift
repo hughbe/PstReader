@@ -12,7 +12,7 @@ import XCTest
 final class OutlookPstFileTests: XCTestCase {
     func testExample() throws {
         do {
-            let data = try getData(name: "backup")
+            let data = try getData(name: "hughbe/backup")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
     
@@ -299,7 +299,7 @@ final class OutlookPstFileTests: XCTestCase {
         }
 
         do {
-            let data = try getData(name: "backup_with_rules")
+            let data = try getData(name: "hughbe/backup_with_rules")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             let inboxFolder = pst.rootFolder!["Top of Outlook data file"]!["Inbox"]!
@@ -308,40 +308,35 @@ final class OutlookPstFileTests: XCTestCase {
             //let assoc = try! pst.getAssociatedContents(folder: pst.rootFolder!)
         }
         do {
-            let data = try getData(name: "Outlook")
+            let data = try getData(name: "aspose-email/Aspose.Email-for-Java/Outlook")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
-            let data = try getData(name: "sample")
+            let data = try getData(name: "aspose-email/Aspose.Email-for-Java/sample")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
-            let data = try getData(name: "source")
+            let data = try getData(name: "aspose-email/Aspose.Email-for-Java/source")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
-            let data = try getData(name: "Sub")
+            let data = try getData(name: "aspose-email/Aspose.Email-for-Java/Sub")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
         do {
-            let data = try getData(name: "test")
+            let data = try getData(name: "aspose-email/Aspose.Email-for-Java/test")
             let pst = try PstFile(data: data)
             print(pst.rootFolder!)
             XCTAssertNotNil(pst.rootFolder)
         }
-    }
-
-    private func getData(name: String) throws -> Data {
-        let url = URL(forResource: name, withExtension: "pst")
-        return try Data(contentsOf: url)
     }
 
     static var allTests = [

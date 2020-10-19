@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.3.3 Property Context (PC)
 /// The Property Context is built directly on top of a BTH. The existence of a PC is indicated at the HN

@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.2.2.6 HEADER
 /// The HEADER structure is located at the beginning of the PST file (absolute file offset 0), and contains

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MAPI
 
 /// [MS-PST] 2.2.2.7.7 BTrees
 /// BTrees are widely used throughout the PST file format. In the NDB Layer, BTrees are the building

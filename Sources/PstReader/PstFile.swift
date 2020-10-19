@@ -65,7 +65,7 @@ public class PstFile {
         }
         
         public var description: String {
-            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
+            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties)
         }
     }
     
@@ -106,7 +106,7 @@ public class PstFile {
         
         public var description: String {
             func dumpFolder(folder: Folder, level: Int) -> String {
-                var s = propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary) + "\n"
+                var s = propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties) + "\n"
                 s += "\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)\n"
                 s += "\(String(repeating: "\t", count: level)) Content Count: \(folder.contentCount!)\n"
                 s += "\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)\n"
@@ -119,7 +119,7 @@ public class PstFile {
                 }
                 
                 for contents in try! folder.getAssociatedContents() {
-                    s += propertiesString(properties: contents, namedProperties: file.namedProperties?.dictionary)
+                    s += propertiesString(properties: contents, namedProperties: file.namedProperties?.properties)
                 }
 
                 return s
@@ -151,6 +151,7 @@ public class PstFile {
         public func getMessageDetails() throws -> Message {
             let propertyContext = try LTP.PropertyContext(ndb: file.ndb, nid: nid)
             var message = Message(folder: folder, nid: nid, properties: propertyContext.properties)
+            message.hasDetails = true
 
             guard let subNodeTree = propertyContext.subNodeTree else {
                 return message
@@ -222,13 +223,12 @@ public class PstFile {
                 }
             }
 
-            message.hasDetails = true
             return message
         }
         
         public var description: String {
             var s = "--- Message ---\n"
-            s += propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
+            s += propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties)
             for (offset, recipient) in recipients.enumerated() {
                 s += "\n--- Recipient[\(offset)] ---\n"
                 s += recipient.description
@@ -256,7 +256,7 @@ public class PstFile {
         }
         
         public var description: String {
-            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
+            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties)
         }
     }
     
@@ -293,7 +293,7 @@ public class PstFile {
         }
         
         public var description: String {
-            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.dictionary)
+            return propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties)
         }
     }
 }

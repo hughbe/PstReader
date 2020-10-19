@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.2.2.8.3.3 Subnode BTree
 /// The subnode BTree collectively refers to all the elements that make up a subnode. The subnode BTree

@@ -5,6 +5,8 @@
 //  Created by Hugh Bellamy on 10/10/2020.
 //
 
+import MAPI
+
 internal protocol LTPContext {
     init(ndb: NDB, subNodeTree: BTree<Node>?, dataBid: BID) throws
 }

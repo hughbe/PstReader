@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 2.2.2.7.7.4 NBTENTRY (Leaf NBT Entry)
 /// NBTENTRY records contain information about nodes and are found in BTPAGES with cLevel equal to 0,

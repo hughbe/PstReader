@@ -7,6 +7,7 @@
 
 import DataStream
 import Foundation
+import MAPI
 import WindowsDataTypes
 
 internal extension LTP {
@@ -52,13 +53,13 @@ internal extension LTP {
                 /// For example, if the HID points to an allocation of 64 bytes, and the Fixed-size type is a
                 /// PtypInteger64 (8 bytes), then the number of items in the MV property is 64 / 8 = 8 items. The size
                 /// of the heap or node data MUST be an integer multiple of the data type size.
-                func readMultiValuedPropertiesWithFixedSizeBaseType<T>(readFunc: (inout DataStream) throws -> T) throws -> [T]? {
+                func readMultiValuedPropertiesWithFixedSizeBaseType<T>(size: Int = MemoryLayout<T>.size, readFunc: (inout DataStream) throws -> T) throws -> [T]? {
                     if property.dwValueHnid == 0 {
                         return []
                     }
                     
                     return try readData { (dataStream, count) in
-                        let count = count / MemoryLayout<T>.size
+                        let count = count / size
                         var elements: [T] = []
                         elements.reserveCapacity(count)
                         for _ in 0..<count {
@@ -215,7 +216,7 @@ internal extension LTP {
                 case .multipleString:
                     return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1 / 2, encoding: .utf16LittleEndian)! }
                 case .multipleTime:
-                    fatalError("NYI: PtypMultipleTime")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<FILETIME>.size) { try FILETIME(dataStream: &$0).date }
                 case .multipleGuid:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.readGUID(endianess: .littleEndian) }
                 case .multipleBinary:

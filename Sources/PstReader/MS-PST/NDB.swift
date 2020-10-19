@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import MAPI
 
 /// [MS-PST] 1.3.1.1 Node Database (NDB) Layer
 /// The NDB layer consists of a database of nodes, which represents the lower-level storage facilities of the PST file format.

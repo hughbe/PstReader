@@ -7,6 +7,7 @@
 
 import DataStream
 import Foundation
+import MAPI
 import WindowsDataTypes
 
 internal extension LTP {
@@ -122,6 +123,47 @@ internal extension LTP {
             func readData<T>(hnid: HNID, readFunc: (inout DataStream, Int) throws -> T) throws -> T? {
                 return try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: hnid, readFunc: readFunc)
             }
+            
+            /// [MS-PST] 2.3.4.4.2 Variable-sized Data
+            /// With respect to the TC, variable-sized data is defined as any data type that allows a variable size
+            /// (such as strings), or any fixed-size data type that exceeds 8 bytes (for example, a GUID). In the case
+            /// of variable-sized data, the actual data is stored elsewhere in the heap or in a subnode, and the HNID
+            /// that references the data is stored the corresponding rgdwData slot instead. The following is a list of
+            /// the property types that are stored using an HNID. A complete list of property types is specified in
+            /// [MS-OXCDATA] section 2.11.1.
+            ///  PtypString
+            ///  PtypString8
+            ///  PtypBinary
+            ///  PtypObject
+            ///  PtypGuid
+            ///  All multi-valued types
+            /// The following table illustrates the handling of fixed- and variable-sized data in the TC (see section
+            /// 2.3.3.2 for determining if an HNID is an HID or an NID).
+            /// Variable size? | Fixed data size | NID_TYPE(dwValueHnid) == NID_TYPE_HID? | rgdwData value
+            /// ----------------------------------------------------------------------------------------------------
+            /// N                               | <= 8 bytes*      |-                                       | Data value
+            ///                | > 8 bytes*                    | Y                                                                                       | HID
+            /// Y                                | -                                    | Y                                                                                       | HID (<= 3580 bytes)
+            ///                |                 | N                                      | NID (subnode, > 3580 bytes)
+            /// This contrasts with the PC in that the TC stores 8-byte values inline (in rgdwData), whereas a PC
+            /// would use an HNID for any data that exceeds 4-bytes in size.
+            func readMultiValuedPropertiesWithFixedSizeBaseType<T>(hnid: HNID, size: Int = MemoryLayout<T>.size, readFunc: (inout DataStream) throws -> T) throws -> [T]? {
+                if hnid.rawValue == 0 {
+                    return []
+                }
+                
+                return try readData(hnid: hnid) { (dataStream, count) in
+                    let count = count / size
+                    var elements: [T] = []
+                    elements.reserveCapacity(count)
+                    for _ in 0..<count {
+                        let element = try readFunc(&dataStream)
+                        elements.append(element)
+                    }
+                    
+                    return elements
+                }
+            }
 
             switch column.tag.type {
             case .unspecified:
@@ -217,14 +259,19 @@ internal extension LTP {
                 
                 let hnid = try HNID(dataStream: &blockDataStream)
                 if hnid.rawValue == 0 {
-                    return []
+                    return Data()
                 }
                 
                 return try readData(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
             case .multipleInteger16:
                 fatalError("NYI: PtypMultipleInteger16")
             case .multipleInteger32:
-                fatalError("NYI: PtypMultipleInteger32")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.read(endianess: .littleEndian) as UInt32 }
             case .multipleFloating32:
                 fatalError("NYI: PtypMultipleFloating32")
             case .multipleFloating64:
@@ -238,7 +285,14 @@ internal extension LTP {
             case .multipleString8:
                 fatalError("NYI: PtypMultipleString8")
             case .multipleString:
-                fatalError("NYI: PtypMultipleString")
+                // TODO
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                //let hnid = try HNID(dataStream: &blockDataStream)
+                return []
+                //return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readUnicodeString(endianess: .littleEndian) as UInt32 }
             case .multipleTime:
                 fatalError("NYI: PtypMultipleTime")
             case .multipleGuid:

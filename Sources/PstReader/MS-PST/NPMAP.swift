@@ -24,6 +24,7 @@ import MAPI
 /// the NPMAP.
 internal struct NPMAP {
     public private(set) var dictionary: [NamedProperty: UInt16]
+    public private(set) var properties: [UInt16: NamedProperty]
     
     public init(ndb: NDB) throws {
         let propertyContext = try LTP.PropertyContext(ndb: ndb, nid: NID.SpecialInternal.nameToIdMap)
@@ -65,10 +66,11 @@ internal struct NPMAP {
         var stringDataStream = DataStream(data: stringStream)
         var entryDataStream = DataStream(data: entryStream)
         let entriesCount = entryDataStream.count / 8
-        
-        
+
         var dictionary = [NamedProperty: UInt16]()
         dictionary.reserveCapacity(entriesCount)
+        var properties = [UInt16: NamedProperty]()
+        properties.reserveCapacity(entriesCount)
         for _ in 0..<entriesCount {
             let nameid = try NAMEID(dataStream: &entryDataStream)
     
@@ -90,6 +92,7 @@ internal struct NPMAP {
                 guid = try getGuid(index: Int(index))
             }
 
+            let property: NamedProperty
             switch nameid.propertyKind {
             case .stringNamed:
                 stringDataStream.position = Int(nameid.dwPropertyID)
@@ -106,14 +109,15 @@ internal struct NPMAP {
                     continue
                 }
 
-                let property = NamedProperty(guid: guid, name: name)
-                dictionary[property] = nameid.wPropIdx
+                property = NamedProperty(guid: guid, name: name)
             case .numericalNamed:
-                let property = NamedProperty(guid: guid, lid: nameid.dwPropertyID)
-                dictionary[property] = nameid.wPropIdx
+                property = NamedProperty(guid: guid, lid: nameid.dwPropertyID)
             }
+            dictionary[property] = nameid.wPropIdx
+            properties[nameid.wPropIdx] = property
         }
         
         self.dictionary = dictionary
+        self.properties = properties
     }
 }
