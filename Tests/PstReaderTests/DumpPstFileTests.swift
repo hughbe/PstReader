@@ -107,7 +107,9 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
-                /*
+                "ic4f/pluto/albert_meyers_000_1_1",
+                "EDRM File Format Data Set/sample",
+                "DFRWS 2009 Rodeo/DFRWS2009-Outlook-Email",
                 "aspose-email/Aspose.Email-for-Java/destination",
                 "aspose-email/Aspose.Email-for-Java/MapiNoteToPST_out",
                 "aspose-email/Aspose.Email-for-Java/Outlook",
@@ -131,7 +133,6 @@ final class DumpPstFileTests: XCTestCase {
                 //"rjohnsondev/java-libpst/example-2013",
                 "rhasson/node-libpst/outlook",
                 "tghanem/PST/user1@test.lab",
-                 */
                 "vlazar-/sis-pst/goran_fazer@hotmail.com",
             ] {
                 let data = try getData(name: name)
