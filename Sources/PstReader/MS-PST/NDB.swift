@@ -100,10 +100,9 @@ internal class NDB {
         return tree
     }
     
-    private func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws -> Int {
+    private func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws {
         dataStream.position = Int(block.offset.rawValue)
         try dataStream.copyBytes(to: buffer, count: Int(block.length))
-        return Int(block.length)
     }
     
     /// When a data block has a subnode, it can be a simple node, or a two-level tree
@@ -114,7 +113,7 @@ internal class NDB {
         }
         
         var buffer = [UInt8](repeating: 0, count: Int(block.length))
-        _ = try buffer.withUnsafeMutableBufferPointer {
+        try buffer.withUnsafeMutableBufferPointer {
             try readAndDecompress(block: block, buffer: $0)
         }
         
@@ -172,7 +171,7 @@ internal class NDB {
         }
         
         var buffer = [UInt8](repeating: 0, count: Int(block.length))
-        _ = try buffer.withUnsafeMutableBufferPointer {
+        try buffer.withUnsafeMutableBufferPointer {
             try readAndDecompress(block: block, buffer: $0)
         }
         

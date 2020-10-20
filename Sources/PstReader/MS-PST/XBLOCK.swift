@@ -25,7 +25,6 @@ internal struct XBLOCK: CustomDebugStringConvertible {
     public let cEnt: UInt16
     public let lcbTotal: UInt32
     public let rgbid: [BID]
-    //public let rgbPadding: [UInt8]
     //public let blockTrailer: BLOCKTRAILER
     
     public init(dataStream: inout DataStream, isUnicode: Bool) throws {
@@ -46,13 +45,11 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         /// cEnt (2 bytes): The count of BID entries in the XBLOCK.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
         
-        /// lcbTotal (4 bytes): Total count of bytes of all the external data stored in the data blocks referenced
-        /// by XBLOCK.
+        /// lcbTotal (4 bytes): Total count of bytes of all the external data stored in the data blocks referenced by XBLOCK.
         self.lcbTotal = try dataStream.read(endianess: .littleEndian)
         
-        /// rgbid (variable): Array of BIDs that reference data blocks. The size is equal to the number of entries
-        /// indicated by cEnt multiplied by the size of a BID (8 bytes for Unicode PST files, 4 bytes for ANSI
-        /// PST files).
+        /// rgbid (variable): Array of BIDs that reference data blocks. The size is equal to the number of entries indicated by cEnt
+        /// multiplied by the size of a BID (8 bytes for Unicode PST files, 4 bytes for ANSI PST files).
         var rgbid = [BID]()
         rgbid.reserveCapacity(Int(self.cEnt))
         for _ in 0..<self.cEnt {
@@ -69,9 +66,7 @@ internal struct XBLOCK: CustomDebugStringConvertible {
         let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
         if (totalSize % 64) != 0 {
             let paddingSize = 64 - (totalSize % 64)
-            self.rgbPadding = try dataStream.readBytes(count: paddingSize)
-        } else {
-            self.rgbPadding = []
+            dataStream.position += paddingSize
         }
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section

@@ -20,14 +20,11 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
     public let btype: UInt8
     public let cLevel: UInt8
     public let cEnt: UInt16
-    public let dwPadding: UInt32
+    public let dwPadding: UInt32?
     public let rgentries: [SLENTRY]
-    //public let rgbPadding: [UInt8]
     //public let blockTrailer: BLOCKTRAILER
     
     public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        //let position = dataStream.position
-
         self.isUnicode = isUnicode
 
         /// btype (1 byte): Block type; MUST be set to 0x02.
@@ -42,20 +39,22 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
             throw PstReadError.invalidCLevel(cLevel: self.cLevel)
         }
         
-        /// cEnt (2 bytes): The number of SLENTRYs in the SLBLOCK. This value and the number of elements in
-        /// the rgentries array MUST be non-zero. When this value transitions to zero, it is required for the
-        /// block to be deleted.
+        /// cEnt (2 bytes): The number of SLENTRYs in the SLBLOCK. This value and the number of elements in the rgentries
+        /// array MUST be non-zero. When this value transitions to zero, it is required for the block to be deleted.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
         if self.cEnt == 0x00 {
             throw PstReadError.invalidCEnt(cEnt: self.cEnt)
         }
         
         /// dwPadding (4 bytes, Unicode only): Padding; MUST be set to zero.
-        self.dwPadding = try dataStream.read(endianess: .littleEndian)
+        if isUnicode {
+            self.dwPadding = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.dwPadding = nil
+        }
         
-        /// rgentries (variable size): Array of SLENTRY structures. The size is equal to the number of entries
-        /// indicated by cEnt multiplied by the size of an SLENTRY (24 bytes for Unicode PST files, 12 bytes
-        /// for ANSI PST Files).
+        /// rgentries (variable size): Array of SLENTRY structures. The size is equal to the number of entries indicated by cEnt
+        /// multiplied by the size of an SLENTRY (24 bytes for Unicode PST files, 12 bytes for ANSI PST Files).
         var rgentries = [SLENTRY]()
         rgentries.reserveCapacity(Int(self.cEnt))
         for _ in 0..<self.cEnt {
@@ -71,10 +70,8 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
         /// the SLBLOCK a multiple of 64. Implementations MUST ignore this field.
         let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
         if (totalSize % 64) != 0 {
-            let paddingSize = 64 - (totalSize % 64)
-            self.rgbPadding = try dataStream.readBytes(count: paddingSize)
-        } else {
-            self.rgbPadding = []
+            let paddingSize =
+            dataStream.position += paddingSize
         }
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
@@ -88,7 +85,9 @@ internal struct SLBLOCK: CustomDebugStringConvertible {
         s += "- btype: \(btype.hexString)\n"
         s += "- cLevel: \(cLevel.hexString)\n"
         s += "- cEnt: \(cEnt.hexString)\n"
-        s += "- dwPadding: \(dwPadding.hexString)\n"
+        if isUnicode {
+            s += "- dwPadding: \(dwPadding!.hexString)\n"
+        }
         for entry in rgentries.enumerated() {
             s += " - rgentries[\(entry.offset)] \(entry.element)"
         }        
