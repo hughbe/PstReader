@@ -19,12 +19,18 @@ import DataStream
 /// the size of the trailer block.
 /// [MS-PST] 2.2.2.8.1 BLOCKTRAILER
 internal struct BLOCKTRAILER: CustomDebugStringConvertible {
+    private let type: PstFileType
     public let bb: UInt16
     public let wSig: UInt16
     public let dwCRC: UInt32
     public let bid: BID
+    public let unknown1: UInt16?
+    public let cbInflated: UInt16?
+    public let unknown2: UInt32?
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
+
         /// bb (2 bytes): The amount of data, in bytes, contained within the data section of the block. This value
         /// does not include the block trailer or any
         self.bb = try dataStream.read(endianess: .littleEndian)
@@ -38,15 +44,42 @@ internal struct BLOCKTRAILER: CustomDebugStringConvertible {
         self.dwCRC = try dataStream.read(endianess: .littleEndian)
 
         /// bid (Unicode: 8 bytes; ANSI 4 bytes): The BID (section 2.2.2.2) of the data block.
-        self.bid = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        self.bid = try BID(dataStream: &dataStream, type: type)
+        
+        if type == .unicode4K {
+            self.unknown1 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown1 = nil
+        }
+        
+        if type == .unicode4K {
+            self.cbInflated = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.cbInflated = nil
+        }
+        
+        if type == .unicode4K {
+            self.unknown2 = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown2 = nil
+        }
     }
 
     public var debugDescription: String {
         var s = "BLOCKTRAILER\n"
-        s += "- bb: \(bb)\n"
-        s += "- wSig: \(wSig)\n"
-        s += "- dwCRC: \(dwCRC)\n"
-        s += "- wSig: \(wSig)\n"
+        s += "- bb: \(bb.hexString)\n"
+        s += "- wSig: \(wSig.hexString)\n"
+        s += "- dwCRC: \(dwCRC.hexString)\n"
+        s += "- wSig: \(wSig.hexString)\n"
+        if type == .unicode4K {
+            s += "- unknown1: \(unknown1!.hexString)\n"
+        }
+        if type == .unicode4K {
+            s += "- cbInflated: \(cbInflated!.hexString)\n"
+        }
+        if type == .unicode4K {
+            s += "- unknown2: \(unknown2!.hexString)\n"
+        }
         return s
     }
 }

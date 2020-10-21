@@ -25,7 +25,7 @@ internal struct BTHHEADER: CustomDebugStringConvertible {
     public let bIdxLevels: UInt8
     public let hidRoot: HID
 
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
         /// bType (1 byte): MUST be bTypeBTH.
         let bTypeRaw: UInt8 = try dataStream.read()
         guard let bType = ClientSignature(rawValue: bTypeRaw), bType == .bth else {
@@ -59,7 +59,7 @@ internal struct BTHHEADER: CustomDebugStringConvertible {
         
         /// hidRoot (4 bytes): This is the HID that points to the BTH entries for this BTHHEADER. The data
         /// consists of an array of BTH records. This value is set to zero if the BTH is empty.
-        self.hidRoot = try HID(dataStream: &dataStream)
+        self.hidRoot = try HID(dataStream: &dataStream, type: type)
     }
 
     public var debugDescription: String {

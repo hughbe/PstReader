@@ -131,7 +131,7 @@ internal class Node: TreeNode {
 internal class Block: TreeNode {
     var offset: IB
     var length: UInt16
-    var inflatedLength: Int32 // Only used for Unicode4K
+    var inflatedLength: UInt16
 
     var isInternal: Bool {
         return (key & 0x02) != 0
@@ -140,7 +140,7 @@ internal class Block: TreeNode {
     public init(entry: BBTENTRY) {
         self.offset = entry.BREF.ib
         self.length = entry.cb
-        self.inflatedLength = 0
+        self.inflatedLength = entry.type == .unicode4K ? entry.cbInflated! : entry.cb
         super.init(key: entry.BREF.bid.rawValue)
     }
     

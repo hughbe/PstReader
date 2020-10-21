@@ -18,15 +18,15 @@ import DataStream
 /// Shown as used by Blocks (section 2.2.2.8):
 internal struct BID: CustomDebugStringConvertible {
     public let rawValue: UInt64
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let reserved: Bool
     public let `internal`: Bool
     public let bidIndex: UInt64
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
-        if isUnicode {
+        if type.isUnicode {
             let rawValue: UInt64 = try dataStream.read(endianess: .littleEndian)
             self.rawValue = rawValue
 

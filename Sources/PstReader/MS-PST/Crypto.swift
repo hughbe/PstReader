@@ -74,29 +74,11 @@ internal struct Crypto {
                 buffer[i] = mpbbI[Int(buffer[i])]
             }
         case .cyclic:
-            /*
-            let w = Int32(bitPattern: key ^ (key >> 16))
-            for i in offset..<offset + count {
-                var b = buffer[i]
-                b = b + UInt8(truncatingIfNeeded: w)
-                b = mpbbR[Int(b)]
-                b = b + UInt8(truncatingIfNeeded: w >> 8)
-                b = mpbbS[Int(b)]
-                b = b - UInt8(truncatingIfNeeded: w >> 8)
-                b = mpbbI[Int(b)]
-                b = b - UInt8(truncatingIfNeeded: w)
-                buffer[i] = b
-                
-            }
-            */
-            
             var salt = UInt16(key ^ (key >> 16))
             for i in offset..<offset + count {
                 let lowerSalt = UInt8(salt & 0x00FF)
                 let upperSalt = UInt8((salt & 0xFF00) >> 8)
-                
-                //print(salt.hexString)
-                
+
                 var b = buffer[i]
                 b = UInt8(truncatingIfNeeded: Int32(b) + Int32(lowerSalt))
                 b = mpbbR[Int(b)]

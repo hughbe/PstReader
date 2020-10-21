@@ -19,9 +19,9 @@ internal extension LTP {
     struct BTreeOnHeap<T> where T: BTH {
         public let bthList: [T]
         
-        public init(heapOnNode: HN, hid: HID) throws {
+        public init(heapOnNode: HN, hid: HID, type: PstFileType) throws {
             var dataStream = heapOnNode.getDataStream(hid: hid)
-            let header = try BTHHEADER(dataStream: &dataStream)
+            let header = try BTHHEADER(dataStream: &dataStream, type: type)
 
             func readBTHIndexHelper<T>(hid: HID, level: UInt8, bthList: inout [T]) throws where T: BTH {
                 if level == 0 {
@@ -36,7 +36,7 @@ internal extension LTP {
                         // The T record also forms the key of the BTH entry
                         var dataStream = heapOnNode.getDataStream(hid: hid)
                         for _ in 0..<recCount {
-                            let bth = try T(dataStream: &dataStream, isUnicode: heapOnNode.isUnicode)
+                            let bth = try T(dataStream: &dataStream, type: heapOnNode.type)
                             bthList.append(bth)
                         }
                     }
@@ -48,7 +48,7 @@ internal extension LTP {
                     let recCount = heapOnNode.getSize(hid: hid) / IntermediateBTH<UInt32>.size
                     var dataStream = heapOnNode.getDataStream(hid: hid)
                     for _ in 0..<recCount {
-                        let intermediate = try IntermediateBTH<UInt32>(dataStream: &dataStream, isUnicode: heapOnNode.isUnicode)
+                        let intermediate = try IntermediateBTH<UInt32>(dataStream: &dataStream, type: heapOnNode.type)
                         try readBTHIndexHelper(hid: intermediate.hidNextLevel, level: level - 1, bthList: &bthList)
                     }
                 }

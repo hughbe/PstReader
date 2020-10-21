@@ -24,29 +24,31 @@ import MAPI
 /// to an NID indicates that the item is stored in the subnode block, and the NID is the local NID under
 /// the subnode where the raw data is located.
 internal struct HNID {
-    public let rawValue: UInt32
-    public let hidType: NIDType
-    public let hid: HID
-    public let nid: NID
-    
-    public init(dataStream: inout DataStream) throws {
-        self.init(rawValue: try dataStream.read(endianess: .littleEndian))
+    private let type: PstFileType
+    public let wValue1: UInt16
+    public let wValue2: UInt16
+    public var rawValue: UInt32 {
+        return (UInt32(wValue2) << 16) | UInt32(wValue1)
+    }
+    public var hidType: NIDType {
+        return NIDType(rawValue: wValue1 & 0x001F) ?? .unknown
+    }
+    public var hid: HID {
+        return HID(wValue1: wValue1, wValue2: wValue2, type: type)
+    }
+    public var nid: NID {
+        return NID(rawValue: (UInt32(wValue2) << 16) | UInt32(wValue1))
     }
     
-    public init(rawValue: UInt32) {
-        self.rawValue = rawValue
-        
-        /// nidType (5 bits): Identifies the type of the node represented by the NID. The following table
-        /// specifies a list of values for nidType. However, it is worth noting that nidType has no meaning to
-        /// the structures defined in the NDB Layer.
-        let rawHidType = rawValue & 0b11111
-        guard let hidType = NIDType(rawValue: rawHidType) else {
-            fatalError("Unknown type \(rawHidType)")
-        }
-        
-        self.hidType = hidType
-        
-        self.hid = HID(rawValue: rawValue)
-        self.nid = NID(rawValue: rawValue)
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        let wValue1: UInt16 = try dataStream.read(endianess: .littleEndian)
+        let wValue2: UInt16 = try dataStream.read(endianess: .littleEndian)
+        self.init(wValue1: wValue1, wValue2: wValue2, type: type)
+    }
+    
+    public init(wValue1: UInt16, wValue2: UInt16, type: PstFileType) {
+        self.wValue1 = wValue1
+        self.wValue2 = wValue2
+        self.type = type
     }
 }

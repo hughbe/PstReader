@@ -27,7 +27,7 @@ internal struct IntermediateBTH<T>: CustomDebugStringConvertible, BTH where T: F
     public let key: T
     public let hidNextLevel: HID
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
         /// key (variable): This is the key of the first record in the next level index record array. The size of the
         /// key is specified in the cbKey field in the corresponding BTHHEADER structure (section 2.3.2.1).
         /// The size and contents of the key are specific to the higher level structure that implements this
@@ -36,7 +36,7 @@ internal struct IntermediateBTH<T>: CustomDebugStringConvertible, BTH where T: F
         
         /// hidNextLevel (4 bytes): HID of the next level index record array. This contains the HID of the heap
         /// item that contains the next level index record array.
-        self.hidNextLevel = try HID(dataStream: &dataStream)
+        self.hidNextLevel = try HID(dataStream: &dataStream, type: type)
     }
 
     public var debugDescription: String {

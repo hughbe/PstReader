@@ -56,7 +56,7 @@ internal struct TCINFO: CustomDebugStringConvertible {
     public let hidIndex: HID
     public let rgTCOLDESC: [TCOLDESC]
 
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
         /// bType (1 byte): TC signature; MUST be set to bTypeTC.
         let bTypeRaw: UInt8 = try dataStream.read()
         guard let bType = ClientSignature(rawValue: bTypeRaw), bType == .tc else {
@@ -88,15 +88,15 @@ internal struct TCINFO: CustomDebugStringConvertible {
         // value pairs that correspond to each row of the TC. The RowID is a value that is associated with the
         // row identified by the RowIndex, whose meaning depends on the higher level structure that
         // implements this TC. The RowIndex is the zero-based index to a particular row in the Row Matrix.
-        self.hidRowIndex = try HID(dataStream: &dataStream)
+        self.hidRowIndex = try HID(dataStream: &dataStream, type: type)
         
         /// hnidRows (4 bytes): HNID to the Row Matrix (that is, actual table data). This value is set to zero if
         /// the TC contains no rows.
-        self.hnidRows = try HNID(dataStream: &dataStream)
+        self.hnidRows = try HNID(dataStream: &dataStream, type: type)
         
         /// hidIndex (4 bytes): Deprecated. Implementations SHOULD ignore this value, and creators of a new
         /// PST MUST set this value to zero.
-        self.hidIndex = try HID(dataStream: &dataStream)
+        self.hidIndex = try HID(dataStream: &dataStream, type: type)
         
         /// rgTCOLDESC (variable): Array of Column Descriptors. This array contains cCol entries of type
         /// TCOLDESC structures that define each TC column. The entries in this array MUST be sorted by

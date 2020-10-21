@@ -27,7 +27,7 @@ internal struct HNHDR: CustomDebugStringConvertible {
     public let hidUserRoot: HID
     public let rgbFillLevel: [FillLevel]
     
-    public init(dataStream: inout DataStream) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
         /// ibHnpm (2 bytes): The byte offset to the HN page Map record (section 2.3.1.5), with respect to the
         /// beginning of the HNHDR structure.
         self.ibHnpm = try dataStream.read(endianess: .littleEndian)
@@ -52,7 +52,7 @@ internal struct HNHDR: CustomDebugStringConvertible {
         
         /// hidUserRoot (4 bytes): HID that points to the User Root record. The User Root record contains data
         /// that is specific to the higher level.
-        self.hidUserRoot = try HID(dataStream: &dataStream)
+        self.hidUserRoot = try HID(dataStream: &dataStream, type: type)
         
         /// rgbFillLevel (4 bytes): Per-block Fill Level Map. This array consists of eight 4-bit values that indicate
         /// the fill level for each of the first 8 data blocks (including this header block). If the HN has fewer

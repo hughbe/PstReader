@@ -75,7 +75,7 @@ internal extension LTP {
             /// allocation instead. Note that the subnode structure in the diagram is significantly simplified for
             /// illustrative purposes.
             var dataStream = heapOnNode.getDataStream(hid: firstBlock.hidUserRoot!)
-            self.tcInfo = try TCINFO(dataStream: &dataStream)
+            self.tcInfo = try TCINFO(dataStream: &dataStream, type: ndb.type)
             
             /// [MS-PST] 2.3.4.3 The RowIndex
             /// The hidRowIndex member in TCINFO points to an embedded BTH that contains an array of
@@ -86,7 +86,7 @@ internal extension LTP {
             /// the implementation to decide what value to use for the primary key. However, an NID value is used as
             /// the primary key because of its uniqueness within a PST.
             /// The following is the layout of the BTH data record used in the RowIndex.
-            self.bTreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex)
+            self.bTreeOnHeap = try BTreeOnHeap<TCROWID>(heapOnNode: heapOnNode, hid: tcInfo.hidRowIndex, type: ndb.type)
         }
 
         public lazy var rows: [TableRow] = try! {
@@ -220,7 +220,7 @@ internal extension LTP {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
                 
-                let hnid = try HNID(dataStream: &blockDataStream)
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 if hnid.rawValue == 0 {
                     return ""
                 }
@@ -231,7 +231,7 @@ internal extension LTP {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
                 
-                let hnid = try HNID(dataStream: &blockDataStream)
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 if hnid.rawValue == 0 {
                     return ""
                 }
@@ -257,7 +257,7 @@ internal extension LTP {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
                 
-                let hnid = try HNID(dataStream: &blockDataStream)
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 if hnid.rawValue == 0 {
                     return Data()
                 }
@@ -270,7 +270,7 @@ internal extension LTP {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
                 
-                let hnid = try HNID(dataStream: &blockDataStream)
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.read(endianess: .littleEndian) as UInt32 }
             case .multipleFloating32:
                 fatalError("NYI: PtypMultipleFloating32")
@@ -307,8 +307,7 @@ internal extension LTP {
         private func readTableData(dataBlocks: [RowDataBlock]) throws -> [TableRow] {
             let rgCEBSize = Int((Float(tcInfo.cCols) / 8).rounded(.up))
             
-            let blockTrailerSize: UInt32 = ndb.isUnicode ? 16 : 12
-            let rowsPerBlock = (ndb.blockSize - blockTrailerSize) / UInt32(tcInfo.rgib.bm)
+            let rowsPerBlock = (ndb.type.blockSize - UInt32(ndb.type.blockTrailerSize)) / UInt32(tcInfo.rgib.bm)
             
             var rows: [TableRow] = []
             rows.reserveCapacity(bTreeOnHeap.bthList.count)

@@ -33,10 +33,10 @@ internal extension LTP {
 
             /// [MS-PST] 2.3.3.1 Accessing the PC BTHHEADER
             /// The BTHHEADER structure of a PC is accessed through the hidUserRoot of the HNHDR structure of the containing HN.
-            let btreeOnHeap = try BTreeOnHeap<PCBTH>(heapOnNode: heapOnNode, hid: firstBlock.hidUserRoot!)
+            let btreeOnHeap = try BTreeOnHeap<PCBTH>(heapOnNode: heapOnNode, hid: firstBlock.hidUserRoot!, type: ndb.type)
             func readValue(property: PCBTH) throws -> Any? {
                 func readData<T>(readFunc: (inout DataStream, Int) throws -> T) throws -> T? {
-                    return try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: HNID(rawValue: property.dwValueHnid), readFunc: readFunc)
+                    return try heapOnNode.getBytes(subNodeTree: subNodeTree, hnid: property.dwValueHnid, readFunc: readFunc)
                 }
                 
                 /// [MS-PST] 2.3.3.4 Multi-Valued Properties
@@ -54,7 +54,7 @@ internal extension LTP {
                 /// PtypInteger64 (8 bytes), then the number of items in the MV property is 64 / 8 = 8 items. The size
                 /// of the heap or node data MUST be an integer multiple of the data type size.
                 func readMultiValuedPropertiesWithFixedSizeBaseType<T>(size: Int = MemoryLayout<T>.size, readFunc: (inout DataStream) throws -> T) throws -> [T]? {
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return []
                     }
                     
@@ -82,7 +82,7 @@ internal extension LTP {
                 /// the data layout is more complex. The following is the data format of a multi-valued property with
                 /// variable-size base type.
                 func readMultiValuedPropertiesWithVariableSizeBaseType<T>(readFunc: (inout DataStream, Int) throws-> T) throws -> [T]? {
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return []
                     }
 
@@ -131,13 +131,13 @@ internal extension LTP {
                 case .null:
                     return nil
                 case .integer16:
-                    return UInt16(property.dwValueHnid)
+                    return UInt16(property.dwValueHnid.rawValue)
                 case .integer32:
-                    return property.dwValueHnid
+                    return property.dwValueHnid.rawValue
                 case .floating32:
-                    return Float(bitPattern: property.dwValueHnid)
+                    return Float(bitPattern: property.dwValueHnid.rawValue)
                 case .floating64:
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return 0.0
                     }
                     
@@ -149,12 +149,12 @@ internal extension LTP {
                 case .errorCode:
                     fatalError("NYI: PtypErrorCode")
                 case .boolean:
-                    return property.dwValueHnid != 0x00
+                    return property.dwValueHnid.rawValue != 0x00
                 case .objectOrEmbeddedTable:
                     /// [MS-PST] 2.3.3.5 PtypObject Properties
                     /// When a property of type PtypObject is stored in a PC, the dwValueHnid value described in section 2.3.3.3
                     /// points to a heap allocation that contains a structure that defines the size and location of the object data.
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return nil
                     }
                     
@@ -174,13 +174,13 @@ internal extension LTP {
                 case .integer64:
                     return try readData { (dataStream, count) in try dataStream.read(endianess: .littleEndian) as UInt64 }
                 case .string8:
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return ""
                     }
                     
                     return try readData { try $0.readString(count: $1, encoding: .ascii)! }
                 case .string:
-                    if property.dwValueHnid == 0 {
+                    if property.dwValueHnid.rawValue == 0 {
                         return ""
                     }
                     

@@ -28,7 +28,10 @@ public enum PstReadError: Error {
     case invalidFillLevel(fillLevel: UInt8)
     case invalidCbKey(cbKey: UInt8)
     case invalidCbEnt(cbEnt: UInt8)
-    case invalidHidType(hidType: UInt32)
+    case invalidHidType(hidType: UInt16)
+    case zlibNotSupported
+    
+    case invalidDeflateStreamSignature(signature: UInt16)
     
     case invalidBlockNum(blockNum: Int)
     case invalidRowOffset(rowOffset: Int)

@@ -107,6 +107,7 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
+                "rjohnsondev/java-libpst/example-2013",
                 //"simiden/pst2john/2k_outlook_qwerty1234",
                 //"simiden/pst2john/97_outlook_pass12345",
                 //"simiden/pst2john/97_outlook_qwerty12345",
@@ -151,7 +152,6 @@ final class DumpPstFileTests: XCTestCase {
                 "hughbe/backup_with_rules",
                 "rjohnsondev/java-libpst/dist-list",
                 "rjohnsondev/java-libpst/passworded",
-                //"rjohnsondev/java-libpst/example-2013",
                 "rhasson/node-libpst/outlook",
                 "tghanem/PST/user1@test.lab",
                 "vlazar-/sis-pst/goran_fazer@hotmail.com",

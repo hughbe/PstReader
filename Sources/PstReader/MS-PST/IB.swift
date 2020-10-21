@@ -12,13 +12,13 @@ import DataStream
 /// beginning of the file. The IB is a simple unsigned integer value and is 64 bits in Unicode versions and
 /// 32 bits in ANSI versions.
 internal struct IB: CustomStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public var rawValue: UInt64
     
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
-        if isUnicode {
+        if type.isUnicode {
             self.rawValue = try dataStream.read(endianess: .littleEndian)
         } else {
             self.rawValue = UInt64(try dataStream.read(endianess: .littleEndian) as UInt32)
@@ -26,7 +26,7 @@ internal struct IB: CustomStringConvertible {
     }
     
     public var description: String {
-        if isUnicode {
+        if type.isUnicode {
             return rawValue.hexString
         } else {
             return UInt32(rawValue).hexString

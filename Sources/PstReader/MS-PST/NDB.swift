@@ -6,6 +6,7 @@
 //
 
 import DataStream
+import Foundation
 import MAPI
 
 /// [MS-PST] 1.3.1.1 Node Database (NDB) Layer
@@ -27,12 +28,8 @@ import MAPI
 /// references to the data stored within the block.
 /// The roots of the NBT and BBT can be accessed from the header of the PST file.
 internal class NDB {
-    public var isUnicode: Bool {
-        return header.isUnicode
-    }
-    
-    public var blockSize: UInt32 {
-        return 8192
+    public var type: PstFileType {
+        return header.type
     }
 
     private var dataStream: DataStream
@@ -53,12 +50,12 @@ internal class NDB {
     func readBTPage(dataStream: inout DataStream, offset: IB, parent: TreeIntermediate) throws {
         dataStream.position = Int(offset.rawValue)
         
-        let page = try BTPAGE(dataStream: &dataStream, isUnicode: isUnicode)
+        let page = try BTPAGE(dataStream: &dataStream, type: type)
         
         var entriesDataStream = DataStream(buffer: page.rgentries)
         for _ in 0..<page.cEnt {
             if page.cLevel > 0 {
-                let entry = try BTENTRY(dataStream: &entriesDataStream, isUnicode: isUnicode)
+                let entry = try BTENTRY(dataStream: &entriesDataStream, type: type)
                 let intermediate = TreeIntermediate(key: entry.btkey)
                 parent.children.append(intermediate)
                 if deferReadingNodes {
@@ -68,10 +65,10 @@ internal class NDB {
                     intermediate.fileOffset = nil
                 }
             } else if page.pageTrailer.ptype == .nodeBTree {
-                let entry = try NBTENTRY(dataStream: &entriesDataStream, isUnicode: isUnicode)
+                let entry = try NBTENTRY(dataStream: &entriesDataStream, type: type)
                 parent.children.append(Node(entry: entry))
             } else if page.pageTrailer.ptype == .blockBTree {
-                let entry = try BBTENTRY(dataStream: &entriesDataStream, isUnicode: isUnicode)
+                let entry = try BBTENTRY(dataStream: &entriesDataStream, type: type)
                 parent.children.append(Block(entry: entry))
             } else {
                 throw PstReadError.invalidPageEntryType(pageEntryType: page.pageTrailer.ptype.rawValue)
@@ -102,7 +99,23 @@ internal class NDB {
     
     private func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws {
         dataStream.position = Int(block.offset.rawValue)
-        try dataStream.copyBytes(to: buffer, count: Int(block.length))
+        
+        if type == .unicode4K && block.length != block.inflatedLength {
+            let signature: UInt16 = try dataStream.read(endianess: .bigEndian)
+            if signature != 0x789C {
+                throw PstReadError.invalidDeflateStreamSignature(signature: signature)
+            }
+            
+            let data = Data(try dataStream.readBytes(count: Int(block.length)))
+            if #available(OSX 10.15, *) {
+                let nsData = try (data as NSData).decompressed(using: .zlib)
+                nsData.copyBytes(to: buffer)
+            } else {
+                throw PstReadError.zlibNotSupported
+            }
+        } else {
+            try dataStream.copyBytes(to: buffer, count: Int(block.inflatedLength))
+        }
     }
     
     /// When a data block has a subnode, it can be a simple node, or a two-level tree
@@ -112,7 +125,7 @@ internal class NDB {
             fatalError("No such block \(bid)")
         }
         
-        var buffer = [UInt8](repeating: 0, count: Int(block.length))
+        var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))
         try buffer.withUnsafeMutableBufferPointer {
             try readAndDecompress(block: block, buffer: $0)
         }
@@ -131,12 +144,12 @@ internal class NDB {
         blockDataStream.position = 0
         switch cLevel {
         case 0x00:
-            let slBlock = try SLBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
+            let slBlock = try SLBLOCK(dataStream: &blockDataStream, type: type)
             for entry in slBlock.rgentries {
                 parent.children.append(Node(entry: entry))
             }
         case 0x01:
-            let siBlock = try SIBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
+            let siBlock = try SIBLOCK(dataStream: &blockDataStream, type: type)
             for entry in siBlock.rgentries {
                 let intermediate = TreeIntermediate(key: UInt64(entry.nid.rawValue))
                 parent.children.append(intermediate)
@@ -170,7 +183,7 @@ internal class NDB {
             fatalError("No such block \(dataBid)")
         }
         
-        var buffer = [UInt8](repeating: 0, count: Int(block.length))
+        var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))
         try buffer.withUnsafeMutableBufferPointer {
             try readAndDecompress(block: block, buffer: $0)
         }
@@ -187,14 +200,14 @@ internal class NDB {
             
             switch cLevel {
             case 0x01:
-                let xBlock = try XBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
+                let xBlock = try XBLOCK(dataStream: &blockDataStream, type: type)
                 for bid in xBlock.rgbid {
                     // Recurse.
                     // Pass what we know here of the total length through, so that it can be returned on the first block
                     try readBlocks(dataBid: bid, blocks: &blocks, totalLength: totalLength != 0 ? totalLength : xBlock.lcbTotal)
                 }
             case 0x02:
-                let xxBlock = try XXBLOCK(dataStream: &blockDataStream, isUnicode: isUnicode)
+                let xxBlock = try XXBLOCK(dataStream: &blockDataStream, type: type)
                 for bid in xxBlock.rgbid {
                     // Recurse.
                     // Pass what we know here of the total length through, so that it can be returned on the first block

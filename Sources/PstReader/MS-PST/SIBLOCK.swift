@@ -16,7 +16,7 @@ import DataStream
 /// subnodes that a node can reference by chaining SLBLOCKS.
 /// [MS-PST] 2.2.2.8.3.3.2.2 SIBLOCK
 internal struct SIBLOCK: CustomDebugStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let btype: UInt8
     public let cLevel: UInt8
     public let cEnt: UInt16
@@ -24,8 +24,8 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
     public let rgentries: [SIENTRY]
     //public let blockTrailer: BLOCKTRAILER
     
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
         /// btype (1 byte): Block type; MUST be set to 0x02.
         self.btype = try dataStream.read()
@@ -43,7 +43,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         self.cEnt = try dataStream.read(endianess: .littleEndian)
         
         /// dwPadding (4 bytes, Unicode Only): Padding; MUST be set to zero.
-        if isUnicode {
+        if type.isUnicode {
             self.dwPadding = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dwPadding = nil
@@ -55,7 +55,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         var rgentries = [SIENTRY]()
         rgentries.reserveCapacity(Int(self.cEnt))
         for _ in 0..<self.cEnt {
-            let entry = try SIENTRY(dataStream: &dataStream, isUnicode: isUnicode)
+            let entry = try SIENTRY(dataStream: &dataStream, type: type)
             rgentries.append(entry)
         }
         
@@ -65,7 +65,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         /// rgbPadding (optional, variable): This field is present if the total size of all of the other fields is not
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the SIBLOCK a multiple of 64. Implementations MUST ignore this field.
-        let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
+        let totalSize = (dataStream.position - position) + type.blockTrailerSize
         if (totalSize % 64) != 0 {
             let paddingSize = 64 - (totalSize % 64)
             dataStream.position += paddingSize
@@ -73,7 +73,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).
-        self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, isUnicode: isUnicode)
+        self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, type: type)
         */
     }
 
@@ -82,7 +82,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         s += "- btype: \(btype.hexString)\n"
         s += "- cLevel: \(cLevel.hexString)\n"
         s += "- cEnt: \(cEnt.hexString)\n"
-        if self.isUnicode {
+        if type.isUnicode {
             s += "- dwPadding: \(dwPadding!.hexString)\n"
         }
         for entry in rgentries.enumerated() {

@@ -7,7 +7,7 @@
 
 import DataStream
 
-public protocol BTH {
-    init(dataStream: inout DataStream, isUnicode: Bool) throws
+internal protocol BTH {
+    init(dataStream: inout DataStream, type: PstFileType) throws
     static var size: UInt16 { get }
 }

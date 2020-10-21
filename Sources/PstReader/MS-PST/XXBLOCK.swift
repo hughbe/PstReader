@@ -18,7 +18,7 @@ import DataStream
 /// reference XBLOCKs. A BLOCKTRAILER is present at the end of an XXBLOCK, and the end of the
 /// BLOCKTRAILER MUST be aligned on a 64-byte boundary.
 internal struct XXBLOCK: CustomDebugStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let btype: UInt8
     public let cLevel: UInt8
     public let cEnt: UInt16
@@ -26,8 +26,8 @@ internal struct XXBLOCK: CustomDebugStringConvertible {
     public let rgbid: [BID]
     //public let blockTrailer: BLOCKTRAILER
     
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
         /// btype (1 byte): Block type; MUST be set to 0x01 to indicate an XBLOCK or XXBLOCK.
         self.btype = try dataStream.read()
@@ -52,7 +52,7 @@ internal struct XXBLOCK: CustomDebugStringConvertible {
         var rgbid = [BID]()
         rgbid.reserveCapacity(Int(self.cEnt))
         for _ in 0..<self.cEnt {
-            let entry = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+            let entry = try BID(dataStream: &dataStream, type: type)
             rgbid.append(entry)
         }
         
@@ -62,7 +62,7 @@ internal struct XXBLOCK: CustomDebugStringConvertible {
         /// rgbPadding (variable, optional): This field is present if the total size of all of the other fields is not
         /// a multiple of 64. The size of this field is the smallest number of bytes required to make the size of
         /// the XXBLOCK a multiple of 64. Implementations MUST ignore this field.
-        let totalSize = (dataStream.position - position) + (isUnicode ? 16 : 12)
+        let totalSize = (dataStream.position - position) + type.blockTrailerSize
         if (totalSize % 64) != 0 {
             let paddingSize = 64 - (totalSize % 64)
             dataStream.position += paddingSize
@@ -70,7 +70,7 @@ internal struct XXBLOCK: CustomDebugStringConvertible {
         
         /// blockTrailer (ANSI: 12 bytes; Unicode: 16 bytes): A BLOCKTRAILER structure (section
         /// 2.2.2.8.1).
-        self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, isUnicode: isUnicode)
+        self.blockTrailer = try BLOCKTRAILER(dataStream: &dataStream, type: type)
         */
     }
 

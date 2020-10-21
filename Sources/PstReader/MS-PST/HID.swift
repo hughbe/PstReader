@@ -22,22 +22,26 @@ import MAPI
 /// An HID is a 4-byte value that identifies an item allocated from the heap. The value is unique only
 /// within the heap itself. The following is the structure of an HID.
 internal struct HID {
-    public let rawValue: UInt32
+    public let wValue1: UInt16
+    public let wValue2: UInt16
     public let hidType: NIDType
-    public let hidIndex: UInt32
-    public let hidBlockIndex: UInt32
+    public let hidIndex: UInt16
+    public let hidBlockIndex: UInt16
     
-    public init(dataStream: inout DataStream) throws {
-        self.init(rawValue: try dataStream.read(endianess: .littleEndian))
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        let wValue1: UInt16 = try dataStream.read(endianess: .littleEndian)
+        let wValue2: UInt16 = try dataStream.read(endianess: .littleEndian)
+        self.init(wValue1: wValue1, wValue2: wValue2, type: type)
     }
     
-    public init(rawValue: UInt32) {
-        self.rawValue = rawValue
+    public init(wValue1: UInt16, wValue2: UInt16, type: PstFileType) {
+        self.wValue1 = wValue1
+        self.wValue2 = wValue2
         
         /// nidType (5 bits): Identifies the type of the node represented by the NID. The following table
         /// specifies a list of values for nidType. However, it is worth noting that nidType has no meaning to
         /// the structures defined in the NDB Layer.
-        let rawHidType = rawValue & 0b11111
+        let rawHidType = wValue1 & 0x001F
         guard let hidType = NIDType(rawValue: rawHidType) else {
             fatalError("Unknown type \(rawHidType)")
         }
@@ -46,9 +50,19 @@ internal struct HID {
         
         /// hidIndex (11 bits): HID index. This is the 1-based index value that identifies an item allocated from
         /// the heap node. This value MUST NOT be zero.
-        self.hidIndex = (rawValue >> 5) & 0b11111111111
+        switch type {
+        case .ansi, .unicode:
+            self.hidIndex = wValue1 >> 5
+        case .unicode4K:
+            self.hidIndex = (wValue1 >> 5) | ((wValue2 & 0x0007) << 11)
+        }
         
         /// hidBlockIndex (16 bits): This is the zero-based data block index. This number indicates the zerobased index of the data block in which this heap item resides.
-        self.hidBlockIndex = (rawValue >> 16) & 0b1111111111111111
+        switch type {
+        case .ansi, .unicode:
+            self.hidBlockIndex = wValue2
+        case .unicode4K:
+            self.hidBlockIndex = wValue2 >> 3
+        }
     }
 }

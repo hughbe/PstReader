@@ -11,15 +11,16 @@ import DataStream
 /// A PAGETRAILER structure contains information about the page in which it is contained. PAGETRAILER
 /// structure is present at the very end of each page in a PST file.
 internal struct PAGETRAILER: CustomDebugStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let ptype: PageType
     public let ptypeRepeat: PageType
     public let wSig: UInt16
     public let dwCRC: UInt32
     public let bid: BID
+    public let unknown: UInt64?
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
         
         /// ptype (1 byte): This value indicates the type of data contained within the page. This field MUST
         /// contain one of the following values.
@@ -41,18 +42,24 @@ internal struct PAGETRAILER: CustomDebugStringConvertible {
         /// wSig (2 bytes): Page signature. This value depends on the value of the ptype field. This value is
         /// zero (0x0000) for AMap, PMap, FMap, and FPMap pages. For BBT, NBT, and DList pages, a page /
         /// block signature is computed (see section 5.5).
-        wSig = try dataStream.read(endianess: .littleEndian)
+        self.wSig = try dataStream.read(endianess: .littleEndian)
         
         /// dwCRC (4 bytes): 32-bit CRC of the page data, excluding the page trailer. See section 5.3 for the
         /// CRC algorithm. Note the locations of the dwCRC and bid are differs between the Unicode and ANSI
         /// version of this structure.
-        dwCRC = try dataStream.read(endianess: .littleEndian)
+        self.dwCRC = try dataStream.read(endianess: .littleEndian)
         
         /// bid (Unicode: 8 bytes; ANSI 4 bytes): The BID of the page's block. AMap, PMap, FMap, and FPMap
         /// pages have a special convention where their BID is assigned the same value as their IB (that is,
         /// the absolute file offset of the page). The bidIndex for other page types are allocated from the
         /// special bidNextP counter in the HEADER structure.
-        bid = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        self.bid = try BID(dataStream: &dataStream, type: type)
+        
+        if type == .unicode4K {
+            self.unknown = try dataStream.read(endianess: .littleEndian)
+        } else {
+            self.unknown = nil
+        }
     }
     
     public var debugDescription: String {
@@ -62,6 +69,9 @@ internal struct PAGETRAILER: CustomDebugStringConvertible {
         s += "- wSig: \(wSig.hexString)\n"
         s += "- dwCRC: \(dwCRC.hexString)\n"
         s += "- bid: \(bid)\n"
+        if type == .unicode4K {
+            s += "- dwCRC: \(unknown!.hexString)\n"
+        }
         return s
     }
 }

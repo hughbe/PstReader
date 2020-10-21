@@ -18,36 +18,36 @@ import MAPI
 /// [MS-PST] 2.2.2.8.3.3.1.1 SLENTRY (Leaf Block Entry)
 /// SLENTRY are records that refer to internal subnodes of a node.
 internal struct SLENTRY: CustomDebugStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let nid: NID
     public let dwNidPadding: UInt32?
     public let bidData: BID
     public let bidSub: BID
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
         /// nid (Unicode: 8 bytes; ANSI: 4 bytes): Local NID of the subnode. This NID is guaranteed to be
         /// unique only within the parent node.
         self.nid = try NID(dataStream: &dataStream)
         
-        if isUnicode {
+        if type.isUnicode {
             self.dwNidPadding = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dwNidPadding = nil
         }
         
         /// bidData (Unicode: 8 bytes; ANSI: 4 bytes): The BID of the data block associated with the subnode.
-        self.bidData = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        self.bidData = try BID(dataStream: &dataStream, type: type)
         
         /// bidSub (Unicode: 8 bytes; ANSI: 4 bytes): If nonzero, the BID of the subnode of this subnode.
-        self.bidSub = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        self.bidSub = try BID(dataStream: &dataStream, type: type)
     }
 
     public var debugDescription: String {
         var s = "SLENTRY\n"
         s += "- nid: \(nid)\n"
-        if isUnicode {
+        if type.isUnicode {
             s += "- dwNidPadding: \(dwNidPadding!.hexString)\n"
         }
         s += "- bidData: \(bidData)\n"

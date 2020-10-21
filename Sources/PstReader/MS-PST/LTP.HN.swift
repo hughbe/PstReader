@@ -20,8 +20,8 @@ internal extension LTP {
     /// and do not use any information from the data block's NDB structure.
     struct HN {
         private var ndb: NDB
-        public var isUnicode: Bool {
-            return ndb.isUnicode
+        public var type: PstFileType {
+            return ndb.type
         }
         public var blocks: [HNDataBlock]
         
@@ -58,7 +58,7 @@ internal extension LTP {
                 var bufferDataStream = DataStream(buffer: entry.element)
                 // First block contains a HNHDR
                 if entry.offset == 0 {
-                    let header = try HNHDR(dataStream: &bufferDataStream)
+                    let header = try HNHDR(dataStream: &bufferDataStream, type: ndb.type)
                     bufferDataStream.position = Int(header.ibHnpm)
                     let pageMap = try HNPAGEMAP(dataStream: &bufferDataStream)
 

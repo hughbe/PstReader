@@ -21,9 +21,9 @@ internal struct PCBTH: BTH, CustomDebugStringConvertible {
     public static let size: UInt16 = 8
     public let wPropId: UInt16
     public let wPropType: PropertyType
-    public let dwValueHnid: UInt32
+    public let dwValueHnid: HNID
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
         /// wPropId (2 bytes): Property ID, as specified in [MS-OXCDATA] section 2.9. This is the upper 16
         /// bits of the property tag value. This is a manifestation of the BTH record (section 2.3.2.3) and
         /// constitutes the key of this record.
@@ -50,7 +50,7 @@ internal struct PCBTH: BTH, CustomDebugStringConvertible {
         ///                 | <4 bytes        | Y                                      | HID
         /// Y               | -               | Y                                      | HID (<= 3580 bytes)
         ///                 | -               | N                                      | NID (subnode, > 3580 bytes)
-        self.dwValueHnid = try dataStream.read(endianess: .littleEndian)
+        self.dwValueHnid = try HNID(dataStream: &dataStream, type: type)
     }
 
     public var debugDescription: String {
@@ -61,7 +61,7 @@ internal struct PCBTH: BTH, CustomDebugStringConvertible {
             s += "- wPropId: \(wPropId.hexString)\n"
         }
         s += "- wPropType: \(wPropType)\n"
-        s += "- dwValueHnid: \(dwValueHnid.hexString)"
+        s += "- dwValueHnid: \(dwValueHnid)"
         return s
     }
 }

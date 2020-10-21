@@ -10,7 +10,7 @@ import DataStream
 /// [MS-PST] 2.2.2.5 ROOT
 /// The ROOT structure contains current file state.
 internal struct ROOT: CustomDebugStringConvertible {
-    public let isUnicode: Bool
+    public let type: PstFileType
     public let dwReserved: UInt32
     public let ibFileEof: IB
     public let ibAMapLast: IB
@@ -22,22 +22,22 @@ internal struct ROOT: CustomDebugStringConvertible {
     public let bReserved: UInt8
     public let wReserved: UInt16
 
-    public init(dataStream: inout DataStream, isUnicode: Bool) throws {
-        self.isUnicode = isUnicode
+    public init(dataStream: inout DataStream, type: PstFileType) throws {
+        self.type = type
 
         /// dwReserved (4 bytes): Implementations SHOULD ignore this value and SHOULD NOT modify it.
         /// Creators of a new PST file MUST initialize this value to zero.<5>
         self.dwReserved = try dataStream.read(endianess: .littleEndian)
 
         /// ibFileEof (Unicode: 8 bytes; ANSI 4 bytes): The size of the PST file, in bytes.
-        self.ibFileEof = try IB(dataStream: &dataStream, isUnicode: isUnicode)
+        self.ibFileEof = try IB(dataStream: &dataStream, type: type)
 
         /// ibAMapLast (Unicode: 8 bytes; ANSI 4 bytes): An IB structure (section 2.2.2.3) that contains the
         /// absolute file offset to the last AMap page of the PST file.
-        self.ibAMapLast = try IB(dataStream: &dataStream, isUnicode: isUnicode)
+        self.ibAMapLast = try IB(dataStream: &dataStream, type: type)
 
         /// cbAMapFree (Unicode: 8 bytes; ANSI 4 bytes): The total free space in all AMaps, combined.
-        if isUnicode {
+        if type.isUnicode {
             self.cbAMapFree = try dataStream.read(endianess: .littleEndian)
         } else {
             self.cbAMapFree = UInt64(try dataStream.read(endianess: .littleEndian) as UInt32)
@@ -46,7 +46,7 @@ internal struct ROOT: CustomDebugStringConvertible {
         /// cbPMapFree (Unicode: 8 bytes; ANSI 4 bytes): The total free space in all PMaps, combined.
         /// Because the PMap is deprecated, this value SHOULD be zero. Creators of new PST files MUST
         /// initialize this value to zero.
-        if isUnicode {
+        if type.isUnicode {
             self.cbPMapFree = try dataStream.read(endianess: .littleEndian)
         } else {
             self.cbPMapFree = UInt64(try dataStream.read(endianess: .littleEndian) as UInt32)
@@ -54,11 +54,11 @@ internal struct ROOT: CustomDebugStringConvertible {
 
         /// BREFNBT (Unicode: 16 bytes; ANSI: 8 bytes): A BREF structure (section 2.2.2.4) that references
         /// the root page of the Node BTree (NBT).
-        self.BREFNBT = try BREF(dataStream: &dataStream, isUnicode: isUnicode)
+        self.BREFNBT = try BREF(dataStream: &dataStream, type: type)
 
         /// BREFBBT (Unicode: 16 bytes; ANSI: 8 bytes): A BREF structure that references the root page of
         /// the Block BTree (BBT).
-        self.BREFBBT = try BREF(dataStream: &dataStream, isUnicode: isUnicode)
+        self.BREFBBT = try BREF(dataStream: &dataStream, type: type)
 
         /// fAMapValid (1 byte): Indicates whether all of the AMaps in this PST file are valid. For more details,
         /// see section 2.6.1.3.7. This value MUST be set to one of the pre-defined values specified in the
@@ -85,13 +85,13 @@ internal struct ROOT: CustomDebugStringConvertible {
         s += "- ibFileEof: \(ibFileEof)\n"
         s += "- ibAMapLast: \(ibAMapLast)\n"
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- cbAMapFree: \(cbAMapFree.hexString)\n"
         } else {
             s += "- cbAMapFree: \(UInt32(cbAMapFree).hexString)\n"
         }
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- cbPMapFree: \(cbPMapFree.hexString)\n"
         } else {
             s += "- cbPMapFree: \(UInt32(cbPMapFree).hexString)\n"

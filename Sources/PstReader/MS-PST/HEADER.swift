@@ -14,9 +14,7 @@ import MAPI
 /// structures. Note that the layout of the HEADER structure, including the location and relative ordering
 /// of some fields, differs between the Unicode and ANSI versions.
 internal struct HEADER: CustomDebugStringConvertible {
-    public var isUnicode: Bool {
-        return wVer >= 23
-    }
+    public let type: PstFileType
 
     public let dwMagic: UInt32
     public let dwCRCPartial: UInt32
@@ -62,7 +60,7 @@ internal struct HEADER: CustomDebugStringConvertible {
 
         /// wMagicClient (2 bytes): MUST be "{ 0x53, 0x4D }".
         let wMagicClient: UInt16 = try dataStream.read(endianess: .littleEndian)
-        if wMagicClient != 0x4D53 {
+        if wMagicClient != 0x4D53 && wMagicClient != 0x4F53 {
             throw PstReadError.invalidWMagicClient(wMagicClient: wMagicClient)
         }
 
@@ -72,13 +70,17 @@ internal struct HEADER: CustomDebugStringConvertible {
         /// MUST be greater than 23 if the file is a Unicode PST file. If the value is 37, it indicates that the file
         /// is written by an Outlook of version that supports Windows Information Protection (WIP). The data
         /// MAY have been protected by WIP.
-        let wVer: UInt16 = try dataStream.read(endianess: .littleEndian)
-        if wVer != 14 && wVer != 15 && wVer < 23 {
+        self.wVer = try dataStream.read(endianess: .littleEndian)
+        switch self.wVer {
+        case 14, 15:
+            self.type = .ansi
+        case 36:
+            self.type = .unicode4K
+        case let wVer where wVer >= 23:
+            self.type = .unicode
+        default:
             throw PstReadError.invalidWVer(wVer: wVer)
         }
-
-        let isUnicode = wVer >= 23
-        self.wVer = wVer
 
         /// wVerClient (2 bytes): Client file format version. The version that corresponds to the format
         /// described in this document is 19. Creators of a new PST file based on this document SHOULD
@@ -111,8 +113,8 @@ internal struct HEADER: CustomDebugStringConvertible {
 
         /// bidUnused (8 bytes Unicode only): Unused padding added when the Unicode PST file format was
         /// created.
-        if isUnicode {
-            self.bidUnused = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        if type.isUnicode {
+            self.bidUnused = try BID(dataStream: &dataStream, type: type)
         } else {
             self.bidUnused = nil
         }
@@ -121,14 +123,14 @@ internal struct HEADER: CustomDebugStringConvertible {
         /// to be assigned for the next allocated block. BID values advance in increments of 4. For more
         /// details, see section 2.2.2.2.
         var bidNextB: BID?
-        if !isUnicode {
-            bidNextB = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        if !type.isUnicode {
+            bidNextB = try BID(dataStream: &dataStream, type: type)
         }
 
         /// bidNextP (Unicode: 8 bytes; ANSI: 4 bytes): Next page BID. Pages have a special counter for
         /// allocating bidIndex values. The value of bidIndex for BIDs for pages is allocated from this
         /// counter.
-        self.bidNextP = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        self.bidNextP = try BID(dataStream: &dataStream, type: type)
 
         /// dwUnique (4 bytes): This is a monotonically-increasing value that is modified every time the PST
         /// file's HEADER structure is modified. The function of this value is to provide a unique value, and to
@@ -155,17 +157,17 @@ internal struct HEADER: CustomDebugStringConvertible {
         self.rgnid = rgnid
 
         /// qwUnused (8 bytes): Unused space; MUST be set to zero. Unicode PST file format only.
-        if isUnicode {
+        if type.isUnicode {
             self.qwUnused = try dataStream.read(endianess: .littleEndian)
         } else {
             self.qwUnused = nil
         }
 
         /// root (Unicode: 72 bytes; ANSI: 40 bytes): A ROOT structure (section 2.2.2.5).
-        self.root = try ROOT(dataStream: &dataStream, isUnicode: isUnicode)
+        self.root = try ROOT(dataStream: &dataStream, type: type)
 
         /// dwAlign (4 bytes): Unused alignment bytes; MUST be set to zero. Unicode PST file format only.
-        if isUnicode {
+        if type.isUnicode {
             self.dwAlign = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dwAlign = nil
@@ -203,29 +205,29 @@ internal struct HEADER: CustomDebugStringConvertible {
         /// bidNextB (Unicode ONLY: 8 bytes): Next BID. This value is the monotonic counter that indicates
         /// the BID to be assigned for the next allocated block. BID values advance in increments of 4. For
         /// more details, see section 2.2.2.2.
-        if isUnicode {
-            bidNextB = try BID(dataStream: &dataStream, isUnicode: isUnicode)
+        if type.isUnicode {
+            bidNextB = try BID(dataStream: &dataStream, type: type)
         }
 
         self.bidNextB = bidNextB!
 
         /// dwCRCFull (4 bytes): The 32-bit CRC value of the 516 bytes of data starting from wMagicClient to
         /// bidNextB, inclusive. Unicode PST file format only.
-        if isUnicode {
+        if type.isUnicode {
             self.dwCRCFull = try dataStream.read(endianess: .littleEndian)
         } else {
             self.dwCRCFull = nil
         }
 
         /// ullReserved (8 bytes): Reserved; MUST be set to zero. ANSI PST file format only.
-        if isUnicode {
+        if type.isUnicode {
             self.ullReserved = nil
         } else {
             self.ullReserved = try dataStream.read(endianess: .littleEndian)
         }
 
         /// dwReserved (4 bytes): Reserved; MUST be set to zero. ANSI PST file format only.
-        if isUnicode {
+        if type.isUnicode {
             self.dwReserved = nil
         } else {
             self.dwReserved = try dataStream.read(endianess: .littleEndian)
@@ -256,11 +258,11 @@ internal struct HEADER: CustomDebugStringConvertible {
         s += "- dwReserved1: \(dwReserved1.hexString)\n"
         s += "- dwReserved2: \(dwReserved2.hexString)\n"
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- bidUnused: \(bidUnused!)\n"
         }
 
-        if !isUnicode {
+        if !type.isUnicode {
             s += "- bidNextB: \(bidNextB)\n"
         }
 
@@ -272,13 +274,13 @@ internal struct HEADER: CustomDebugStringConvertible {
             s += "- rgnid[\(kvp.offset)] \(kvp.element)\n"
         }
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- bidUnused: \(qwUnused!.hexString)\n"
         }
 
         s += "\(root)"
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- dwAlign: \(dwAlign!.hexString)\n"
         }
 
@@ -288,19 +290,19 @@ internal struct HEADER: CustomDebugStringConvertible {
         s += "- bCryptMethod: \(bCryptMethod)\n"
         s += "- rgbReserved: \(rgbReserved.hexString)\n"
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- bidNextB: \(bidNextB)\n"
         }
 
-        if isUnicode {
+        if type.isUnicode {
             s += "- dwCRCFull: \(dwCRCFull!.hexString)\n"
         }
 
-        if !isUnicode {
+        if !type.isUnicode {
             s += "- ullReserved: \(ullReserved!.hexString)\n"
         }
 
-        if !isUnicode {
+        if !type.isUnicode {
             s += "- dwReserved: \(dwReserved!.hexString)\n"
         }
 
