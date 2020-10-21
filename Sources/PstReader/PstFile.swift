@@ -204,22 +204,23 @@ public class PstFile {
                 /// Attachment object, but the full Attachment object data is stored in a separate subnode. The
                 /// Attachment table is optional, and can be absent from Message objects that do not contain any
                 /// Attachment objects.
-                var attachmentTableContext = try LTP.TableContext(ndb: file.ndb, nid: NID.SpecialInternal.attachmentTable, subNodeTree: subNodeTree)
-                message.attachments.reserveCapacity(attachmentTableContext.rows.count)
-                
-                /// [MS-PST] 2.4.6.1.2 Message Object Attachment Tables
-                /// Attachment Tables in actual Message objects contain all the columns in the attachment table
-                /// template, plus a number of extra properties about its Attachment object. Attachment object
-                /// properties are specified in [MS-OXCMSG] and [MS-OXPROPS].
-                for row in attachmentTableContext.rows {
-                    /// [MS-PST] 2.4.6.1.3 Locating Attachment Object Nodes from the Attachment Table
-                    /// Each row in the Attachment Table maps to an Attachment object subnode in the same way that a
-                    /// Folder object contents table maps its rows to Message object nodes (see section 2.4.4.5.2). The
-                    /// Attachment Table uses the RowIndex in the TC to map rows to Attachment object subnodes. In
-                    /// particular, each dwRowID value contains the subnode NID of the Attachment object subnode that
-                    /// corresponds to the row specified by dwRowIndex.
-                    let attachment = Attachment(message: message, nid: row.nid, subNodeTree: subNodeTree, properties: row.properties)
-                    message.attachments.append(attachment)
+                if var attachmentTableContext = try? LTP.TableContext(ndb: file.ndb, nid: NID.SpecialInternal.attachmentTable, subNodeTree: subNodeTree) {
+                    message.attachments.reserveCapacity(attachmentTableContext.rows.count)
+                    
+                    /// [MS-PST] 2.4.6.1.2 Message Object Attachment Tables
+                    /// Attachment Tables in actual Message objects contain all the columns in the attachment table
+                    /// template, plus a number of extra properties about its Attachment object. Attachment object
+                    /// properties are specified in [MS-OXCMSG] and [MS-OXPROPS].
+                    for row in attachmentTableContext.rows {
+                        /// [MS-PST] 2.4.6.1.3 Locating Attachment Object Nodes from the Attachment Table
+                        /// Each row in the Attachment Table maps to an Attachment object subnode in the same way that a
+                        /// Folder object contents table maps its rows to Message object nodes (see section 2.4.4.5.2). The
+                        /// Attachment Table uses the RowIndex in the TC to map rows to Attachment object subnodes. In
+                        /// particular, each dwRowID value contains the subnode NID of the Attachment object subnode that
+                        /// corresponds to the row specified by dwRowIndex.
+                        let attachment = Attachment(message: message, nid: row.nid, subNodeTree: subNodeTree, properties: row.properties)
+                        message.attachments.append(attachment)
+                    }
                 }
             }
 

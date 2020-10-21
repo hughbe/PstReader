@@ -59,11 +59,14 @@ internal struct NPMAP {
         /// [MS-PST] 2.4.7.4 The String Stream
         /// The String Stream is a packed list of strings that is used for all the named properties in the PST. The String Stream is stored as a single property in the PC
         /// with the property tag PidTagNameidStreamString.
-        guard let stringStream = try propertyContext.properties.getProperty(id: PstPropertyId.tagNameidStreamString.rawValue) as? Data else {
-            throw PstReadError.missingProperty(property: .tagNameidStreamString)
+        /// Note: although technically this is required, it is missing from older pst files that don't have any string named properties
+        let stringDataStream: DataStream?
+        if let stringStream = try propertyContext.properties.getProperty(id: PstPropertyId.tagNameidStreamString.rawValue) as? Data {
+            stringDataStream = DataStream(data: stringStream)
+        } else {
+            stringDataStream = nil
         }
         
-        var stringDataStream = DataStream(data: stringStream)
         var entryDataStream = DataStream(data: entryStream)
         let entriesCount = entryDataStream.count / 8
 
@@ -95,6 +98,10 @@ internal struct NPMAP {
             let property: NamedProperty
             switch nameid.propertyKind {
             case .stringNamed:
+                guard var stringDataStream = stringDataStream else {
+                    throw PstReadError.missingProperty(property: .tagNameidStreamString)
+                }
+
                 stringDataStream.position = Int(nameid.dwPropertyID)
                 
                 /// Name Length (4 bytes): The length of the following Name field in bytes.
@@ -113,6 +120,7 @@ internal struct NPMAP {
             case .numericalNamed:
                 property = NamedProperty(guid: guid, lid: nameid.dwPropertyID)
             }
+
             dictionary[property] = nameid.wPropIdx
             properties[nameid.wPropIdx] = property
         }
