@@ -107,6 +107,7 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
+                "hughbe/pstreadertests@outlook.com.ost",
                 "rjohnsondev/java-libpst/example-2013",
                 //"simiden/pst2john/2k_outlook_qwerty1234",
                 //"simiden/pst2john/97_outlook_pass12345",
