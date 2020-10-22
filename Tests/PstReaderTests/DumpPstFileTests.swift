@@ -109,6 +109,7 @@ final class DumpPstFileTests: XCTestCase {
             for name in [
                 "simiden/pst2john/97_outlook_qwerty12345",
                 "hughbe/pstreadertests@outlook.com.ost",
+                "hughbe/pstreadertests@outlook.com.pst",
                 "rjohnsondev/java-libpst/example-2013",
                 "simiden/pst2john/2k_outlook_qwerty1234",
                 "simiden/pst2john/97_outlook_pass12345",
