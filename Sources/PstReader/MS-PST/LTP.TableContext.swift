@@ -164,6 +164,52 @@ internal extension LTP {
                     return elements
                 }
             }
+            
+            func readMultiValuedPropertiesWithVariableSizeBaseType<T>(hnid: HNID, readFunc: (inout DataStream, Int) throws -> T) throws -> [T]? {
+                if hnid.rawValue == 0 {
+                    return []
+                }
+                
+                return try readData(hnid: hnid) { (dataStream, count) in
+                    let position = dataStream.position
+
+                    /// ulCount (4 bytes): Number of data items in the array.
+                    let ulCount: UInt32 = try dataStream.read(endianess: .littleEndian)
+                                    
+                    /// rgulDataOffsets (variable): An array of ULONG values that represent offsets to the start of each
+                    /// data item for the MV array. Offsets are relative to the beginning of the MV property data record.
+                    /// The length of the Nth data item is calculated as: rgulOffsets[N+1] – rgulOffsets[N], with the
+                    /// exception of the last item, in which the total size of the MV property data record is used instead of
+                    /// rgulOffsets[N+1].
+                    var dataOffsets: [UInt32] = []
+                    dataOffsets.reserveCapacity(Int(ulCount))
+                    for _ in 0..<ulCount {
+                        let dataOffset: UInt32 = try dataStream.read(endianess: .littleEndian)
+                        dataOffsets.append(dataOffset)
+                    }
+                    
+                    func getElementCount(index: Int) -> UInt32 {
+                        if index == dataOffsets.count - 1 {
+                            return UInt32(count) - dataOffsets[index]
+                        }
+                        
+                        return dataOffsets[index + 1] - dataOffsets[index]
+                    }
+                    
+                    /// rgDataItems (variable): A byte-aligned array of data items. Individual items are delineated using the rgulOffsets values.
+                    var rgDataItems: [T] = []
+                    rgDataItems.reserveCapacity(Int(ulCount))
+                    for i in 0..<ulCount {
+                        dataStream.position = position + Int(dataOffsets[Int(i)])
+
+                        let count = Int(getElementCount(index: Int(i)))
+                        let rgDataItem = try readFunc(&dataStream, count)
+                        rgDataItems.append(rgDataItem)
+                    }
+                    
+                    return rgDataItems
+                }
+            }
 
             switch column.tag.type {
             case .unspecified:
@@ -195,11 +241,23 @@ internal extension LTP {
 
                 return try blockDataStream.readDouble(endianess: .littleEndian)
             case .currency:
-                fatalError("NYI: PtypCurrency")
+                if column.cbData != 8 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+
+                return Double(currency: try blockDataStream.read(endianess: .littleEndian))
             case .floatingTime:
-                fatalError("NYI: PtypFloatingTime")
+                if column.cbData != 8 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+
+                return Date(floatingTime: try blockDataStream.readDouble(endianess: .littleEndian))
             case .errorCode:
-                fatalError("NYI: PtypErrorCode")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+
+                return try blockDataStream.read(endianess: .littleEndian) as UInt32
             case .boolean:
                 if column.cbData != 1 {
                     throw PstReadError.invalidPropertySize(expected: 1, actual: column.cbData)
@@ -236,18 +294,35 @@ internal extension LTP {
                     return ""
                 }
                 
-                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16)! }
             case .time:
-                // In a Table Context, time values are held in line
                 if column.cbData != 8 {
                     throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
                 }
 
                 return try FILETIME(dataStream: &blockDataStream).date
             case .guid:
-                fatalError("NYI: PtypGuid")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                if hnid.rawValue == 0 {
+                    return nil
+                }
+
+                return try readData(hnid: hnid) { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
             case .serverId:
-                fatalError("NYI: PtypServerId")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                if hnid.rawValue == 0 {
+                    return nil
+                }
+
+                return try readData(hnid: hnid) { (dataStream, count) in try ServerId(dataStream: &dataStream) }
             case .restriction:
                 fatalError("NYI: PtypRestriction")
             case .ruleAction:
@@ -264,7 +339,12 @@ internal extension LTP {
                 
                 return try readData(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
             case .multipleInteger16:
-                fatalError("NYI: PtypMultipleInteger16")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.read(endianess: .littleEndian) as UInt16 }
             case .multipleInteger32:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
@@ -273,32 +353,75 @@ internal extension LTP {
                 let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.read(endianess: .littleEndian) as UInt32 }
             case .multipleFloating32:
-                fatalError("NYI: PtypMultipleFloating32")
-            case .multipleFloating64:
-                fatalError("NYI: PtypMultipleFloating64")
-            case .multipleCurrency:
-                fatalError("NYI: PtypMultipleCurrency")
-            case .multipleFloatingTime:
-                fatalError("NYI: PtypMultipleFloatingTime")
-            case .multipleInteger64:
-                fatalError("NYI: PtypMultipleInteger64")
-            case .multipleString8:
-                fatalError("NYI: PtypMultipleString8")
-            case .multipleString:
-                // TODO
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
                 
-                //let hnid = try HNID(dataStream: &blockDataStream)
-                return []
-                //return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readUnicodeString(endianess: .littleEndian) as UInt32 }
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.readFloat(endianess: .littleEndian) }
+            case .multipleFloating64:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.readDouble(endianess: .littleEndian) }
+            case .multipleCurrency:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid, size: MemoryLayout<UInt64>.size) { Double(currency: try $0.read(endianess: .littleEndian)) }
+            case .multipleFloatingTime:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid, size: MemoryLayout<Double>.size) { Date(floatingTime: try $0.readDouble(endianess: .littleEndian)) }
+            case .multipleInteger64:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.read(endianess: .littleEndian) as UInt64 }
+            case .multipleString8:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii)! }
+            case .multipleString:
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
             case .multipleTime:
-                fatalError("NYI: PtypMultipleTime")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid, size: MemoryLayout<FILETIME>.size) { try FILETIME(dataStream: &$0).date }
             case .multipleGuid:
-                fatalError("NYI: PtypMultipleGuid")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.readGUID(endianess: .littleEndian) }
             case .multipleBinary:
-                fatalError("NYI: PtypMultipleBinary")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { Data(try $0.readBytes(count: $1)) }
             case .unknown:
                 return nil
             }

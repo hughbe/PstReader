@@ -87,6 +87,8 @@ internal extension LTP {
                     }
 
                     return try readData { (dataStream, count) in
+                        let position = dataStream.position
+
                         /// ulCount (4 bytes): Number of data items in the array.
                         let ulCount: UInt32 = try dataStream.read(endianess: .littleEndian)
                                         
@@ -114,7 +116,7 @@ internal extension LTP {
                         var rgDataItems: [T] = []
                         rgDataItems.reserveCapacity(Int(ulCount))
                         for i in 0..<ulCount {
-                            dataStream.position = Int(dataOffsets[Int(i)])
+                            dataStream.position = position + Int(dataOffsets[Int(i)])
 
                             let count = Int(getElementCount(index: Int(i)))
                             let rgDataItem = try readFunc(&dataStream, count)
@@ -143,11 +145,21 @@ internal extension LTP {
                     
                     return try readData { (dataStream, count) in try dataStream.readDouble() }
                 case .currency:
-                    fatalError("NYI: PtypCurrency")
+                    if property.dwValueHnid.rawValue == 0 {
+                        return 0.0
+                    }
+                    
+                    return try readData { (dataStream, count) in try Double(currency: dataStream.read(endianess: .littleEndian)) }
                 case .floatingTime:
-                    fatalError("NYI: PtypFloatingTime")
+                    return try readData { (dataStream, count) in
+                        guard let date = try Date(floatingTime: dataStream.readDouble()) else {
+                            throw MAPIError.corrupted
+                        }
+                        
+                        return date
+                    }
                 case .errorCode:
-                    fatalError("NYI: PtypErrorCode")
+                    return property.dwValueHnid.rawValue
                 case .boolean:
                     return property.dwValueHnid.rawValue != 0x00
                 case .objectOrEmbeddedTable:
@@ -190,7 +202,7 @@ internal extension LTP {
                 case .guid:
                     return try readData { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
                 case .serverId:
-                    fatalError("NYI: PtypServerId")
+                    return try readData { (dataStream, count) in try ServerId(dataStream: &dataStream) }
                 case .restriction:
                     fatalError("NYI: PtypRestriction")
                 case .ruleAction:
@@ -206,15 +218,15 @@ internal extension LTP {
                 case .multipleFloating64:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.readDouble(endianess: .littleEndian) }
                 case .multipleCurrency:
-                    fatalError("NYI: PtypMultipleCurrency")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<UInt64>.size) { Double(currency: try $0.read(endianess: .littleEndian)) }
                 case .multipleFloatingTime:
-                    fatalError("NYI: PtypMultipleFloatingTime")
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<Double>.size) { Date(floatingTime: try $0.readDouble(endianess: .littleEndian)) }
                 case .multipleInteger64:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.read(endianess: .littleEndian) as UInt64 }
                 case .multipleString8:
                     return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .ascii)! }
                 case .multipleString:
-                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1 / 2, encoding: .utf16LittleEndian)! }
+                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
                 case .multipleTime:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<FILETIME>.size) { try FILETIME(dataStream: &$0).date }
                 case .multipleGuid:
