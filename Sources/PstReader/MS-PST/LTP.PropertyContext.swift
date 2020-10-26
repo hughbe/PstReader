@@ -202,11 +202,24 @@ internal extension LTP {
                 case .guid:
                     return try readData { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
                 case .serverId:
-                    return try readData { (dataStream, count) in try ServerId(dataStream: &dataStream) }
+                    return try readData { (dataStream, count) in
+                        let _: UInt16 = try dataStream.read(endianess: .littleEndian)
+                        return try ServerId(dataStream: &dataStream)
+                    }
                 case .restriction:
-                    fatalError("NYI: PtypRestriction")
+                    return try readData { (dataStream, count) in try Restriction(dataStream: &dataStream, standard: true) }
                 case .ruleAction:
-                    fatalError("NYI: PtypRuleAction")
+                    return try readData { (dataStream, count) in
+                        let count: UInt16 = try dataStream.read(endianess: .littleEndian)
+                        var actions: [RuleAction] = []
+                        actions.reserveCapacity(Int(count))
+                        for _ in 0..<count {
+                            let action = try RuleAction(dataStream: &dataStream, standard: true)
+                            actions.append(action)
+                        }
+                        
+                        return actions
+                    }
                 case .binary:
                     return try readData { Data(try $0.readBytes(count: $1)) }
                 case .multipleInteger16:

@@ -122,7 +122,7 @@ internal class NDB {
     /// This reads a sub node and builds suitable data structures, so that we can later access data held in it
     private func readSubNodeBTree(bid: BID, parent: TreeIntermediate) throws {
         guard let block = try lookupBlock(bid: bid) else {
-            fatalError("No such block \(bid)")
+            throw PstReadError.noSuchBlock(bid: bid.rawValue)
         }
         
         var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))
@@ -180,7 +180,7 @@ internal class NDB {
     
     private func readBlocks(dataBid: BID, blocks: inout [[UInt8]], totalLength: UInt32) throws {
         guard let block = try lookupBlock(bid: dataBid) else {
-            fatalError("No such block \(dataBid)")
+            throw PstReadError.noSuchBlock(bid: dataBid.rawValue)
         }
         
         var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))

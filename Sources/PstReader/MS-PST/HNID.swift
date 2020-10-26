@@ -34,7 +34,7 @@ internal struct HNID {
         return NIDType(rawValue: wValue1 & 0x001F) ?? .unknown
     }
     public var hid: HID {
-        return HID(wValue1: wValue1, wValue2: wValue2, type: type)
+        return try! HID(wValue1: wValue1, wValue2: wValue2, type: type)
     }
     public var nid: NID {
         return NID(rawValue: (UInt32(wValue2) << 16) | UInt32(wValue1))

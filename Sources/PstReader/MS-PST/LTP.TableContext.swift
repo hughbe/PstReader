@@ -294,7 +294,7 @@ internal extension LTP {
                     return ""
                 }
                 
-                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16)! }
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
             case .time:
                 if column.cbData != 8 {
                     throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
@@ -322,11 +322,42 @@ internal extension LTP {
                     return nil
                 }
 
-                return try readData(hnid: hnid) { (dataStream, count) in try ServerId(dataStream: &dataStream) }
+                return try readData(hnid: hnid) { (dataStream, count) in
+                    let _: UInt16 = try dataStream.read(endianess: .littleEndian)
+                    return try ServerId(dataStream: &dataStream)
+                }
             case .restriction:
-                fatalError("NYI: PtypRestriction")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                if hnid.rawValue == 0 {
+                    return nil
+                }
+
+                return try readData(hnid: hnid) { (dataStream, count) in try Restriction(dataStream: &dataStream, standard: false) }
             case .ruleAction:
-                fatalError("NYI: PtypRuleAction")
+                if column.cbData != 4 {
+                    throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
+                }
+                
+                let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
+                if hnid.rawValue == 0 {
+                    return nil
+                }
+
+                return try readData(hnid: hnid) { (dataStream, count) in
+                    let count: UInt16 = try dataStream.read(endianess: .littleEndian)
+                    var actions: [RuleAction] = []
+                    actions.reserveCapacity(Int(count))
+                    for _ in 0..<count {
+                    	let action = try RuleAction(dataStream: &dataStream, standard: true)
+                        actions.append(action)
+                    }
+                    
+                    return actions
+                }
             case .binary:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)

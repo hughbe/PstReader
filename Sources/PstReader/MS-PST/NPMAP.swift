@@ -79,20 +79,18 @@ internal struct NPMAP {
     
             let guid: UUID
             switch nameid.wGuid {
+            case 0:
+                /// 0x0000 NAMEID_GUID_NONE No GUID (N=1).
+                guid = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
             case 1:
-                /// Always use the PS_MAPI property set, as specified in [MS-OXPROPS] section 1.3.2. No GUID is stored in
-                /// the GUID stream.
-                guid = UUID(uuidString: "00020328-0000-0000-C000-000000000046")!
+                /// 0x0001 NAMEID_GUID_MAPI The GUID is PS_MAPI ([MS-OXPROPS] section 1.3.2).
+                guid = CommonlyUsedPropertySet.PS_MAPI
             case 2:
-                /// Always use the PS_PUBLIC_STRINGS property set, as specified in [MS-OXPROPS] section 1.3.2. No
-                /// GUID is stored in the GUID stream.
-                guid = UUID(uuidString: "00020329-0000-0000-C000-000000000046")!
+                /// 0x0002 NAMEID_GUID_PUBLIC_STRINGS The GUID is PS_PUBLIC_STRINGS ([MSOXPROPS] section 1.3.2).
+                guid = CommonlyUsedPropertySet.PS_PUBLIC_STRINGS
             default:
-                /// Use Value minus 3 as the index of the GUID into the GUID stream. For example, if the GUID index is 5,
-                /// the third GUID (5 minus 3, resulting in a zero-based index of 2) is used as the GUID for the name
-                /// property being derived.
-                let index = nameid.wGuid >= 3 ? nameid.wGuid - 3 : nameid.wGuid
-                guid = try getGuid(index: Int(index))
+                /// 0x0003 N/A GUID is found at the (N-3) * 16 byte offset in the GUID Stream.
+                guid = try getGuid(index: Int(nameid.wGuid - 3))
             }
 
             let property: NamedProperty

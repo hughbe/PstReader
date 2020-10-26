@@ -73,6 +73,8 @@ public class PstFile {
         internal let nid: NID
         internal let properties: PropertiesReader
         internal let file: PstFile
+        
+        public private(set) var hasDetails: Bool = false
         public internal(set) var children: [Folder] = []
         
         internal init(nid: NID, properties: PropertiesReader, file: PstFile) {
@@ -91,25 +93,31 @@ public class PstFile {
                 .map { Message(folder: self, nid: $0.nid, properties: $0.properties) }
         }
         
-        public func getAssociatedContents() throws -> [[UInt16: Any?]] {
+        public func getAssociatedContents() throws -> [Message] {
             var table = try LTP.TableContext(ndb: file.ndb, nid: NID(type: .assocContentsTable, nid: nid))
-            return try table.rows.map { try $0.properties.getAllProperties() }
+            return table.rows
+                .map { Message(folder: self, nid: $0.nid, properties: $0.properties) }
+        }
+        
+        public func getFolderDetails() throws -> Folder {
+            if hasDetails {
+                return self
+            }
+
+            let propertyContext = try LTP.PropertyContext(ndb: file.ndb, nid: nid)
+            var folder = Folder(nid: nid, properties: propertyContext.properties, file: file)
+            folder.hasDetails = true
+            return folder
         }
         
         public subscript(child: String) -> Folder? {
             return children.first { $0.displayName == child }
         }
-        
-        public var associatedContentCount: UInt32? {
-            return getProperty(id: .tagAssociatedContentCount)
-        }
-        
+
         public var description: String {
             func dumpFolder(folder: Folder, level: Int) -> String {
                 var s = propertiesString(properties: try! properties.getAllProperties(), namedProperties: file.namedProperties?.properties) + "\n"
-                s += "\(String(repeating: "\t", count: level)) Name: \(folder.displayName!)\n"
-                s += "\(String(repeating: "\t", count: level)) Content Count: \(folder.contentCount!)\n"
-                s += "\(String(repeating: "\t", count: level)) Content Unread Count: \(folder.contentUnreadCount!)\n"
+                
                 for child in folder.children {
                     s += dumpFolder(folder: child, level: level + 1)
                 }
@@ -118,8 +126,8 @@ public class PstFile {
                     s += try! message.getMessageDetails().description
                 }
                 
-                for contents in try! folder.getAssociatedContents() {
-                    s += propertiesString(properties: contents, namedProperties: file.namedProperties?.properties)
+                for content in try! folder.getAssociatedContents() {
+                    s += try! content.getMessageDetails().description
                 }
 
                 return s
@@ -149,6 +157,10 @@ public class PstFile {
         }
         
         public func getMessageDetails() throws -> Message {
+            if hasDetails {
+                return self
+            }
+            
             let propertyContext = try LTP.PropertyContext(ndb: file.ndb, nid: nid)
             var message = Message(folder: folder, nid: nid, properties: propertyContext.properties)
             message.hasDetails = true
@@ -280,6 +292,10 @@ public class PstFile {
         }
         
         public func getAttachmentDetails() throws -> Attachment {
+            if hasDetails {
+                return self
+            }
+
             /// [MS-PST] 2.4.6.2 Attachment Object PC
             /// An Attachment object PC is a subnode with an NID_TYPE of NID_TYPE_ATTACHMENT, which
             /// contains all the information about an Attachment object. Because of the size of most Attachment

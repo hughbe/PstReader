@@ -40,6 +40,7 @@ public enum PstReadError: Error {
     case missingProperty(property: PstPropertyId)
     
     case noSuchNode(nid: UInt32)
+    case noSuchBlock(bid: UInt64)
     case corruptedHeapNode(dataBid: UInt64)
     case invalidContext(expected: UInt8, actual: UInt8)
 }

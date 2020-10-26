@@ -31,25 +31,24 @@ internal struct HID {
     public init(dataStream: inout DataStream, type: PstFileType) throws {
         let wValue1: UInt16 = try dataStream.read(endianess: .littleEndian)
         let wValue2: UInt16 = try dataStream.read(endianess: .littleEndian)
-        self.init(wValue1: wValue1, wValue2: wValue2, type: type)
+        try self.init(wValue1: wValue1, wValue2: wValue2, type: type)
     }
     
-    public init(wValue1: UInt16, wValue2: UInt16, type: PstFileType) {
+    public init(wValue1: UInt16, wValue2: UInt16, type: PstFileType) throws {
         self.wValue1 = wValue1
         self.wValue2 = wValue2
         
-        /// nidType (5 bits): Identifies the type of the node represented by the NID. The following table
-        /// specifies a list of values for nidType. However, it is worth noting that nidType has no meaning to
-        /// the structures defined in the NDB Layer.
+        /// nidType (5 bits): Identifies the type of the node represented by the NID. The following table specifies a list of values for nidType.
+        /// However, it is worth noting that nidType has no meaning to the structures defined in the NDB Layer.
         let rawHidType = wValue1 & 0x001F
         guard let hidType = NIDType(rawValue: rawHidType) else {
-            fatalError("Unknown type \(rawHidType)")
+            throw PstReadError.invalidHidType(hidType: rawHidType)
         }
         
         self.hidType = hidType
         
-        /// hidIndex (11 bits): HID index. This is the 1-based index value that identifies an item allocated from
-        /// the heap node. This value MUST NOT be zero.
+        /// hidIndex (11 bits): HID index. This is the 1-based index value that identifies an item allocated from the heap node.
+        /// This value MUST NOT be zero.
         switch type {
         case .ansi, .unicode:
             self.hidIndex = wValue1 >> 5

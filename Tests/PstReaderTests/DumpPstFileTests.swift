@@ -12,7 +12,7 @@ import XCTest
 
 final class DumpPstFileTests: XCTestCase {
 
-    func dumpAttachment(accessor: String, attachment: PstFile.Attachment) -> String {
+    static func dumpAttachment(accessor: String, attachment: PstFile.Attachment) -> String {
         var s = ""
 
         s += propertiesTestString(accessor: accessor, properties: try! attachment.properties.getAllProperties(), namedProperties: attachment.file.namedProperties?.properties)
@@ -27,7 +27,7 @@ final class DumpPstFileTests: XCTestCase {
         return s
     }
     
-    func dumpRecipient(accessor: String, recipient: PstFile.Recipient) -> String {
+    static func dumpRecipient(accessor: String, recipient: PstFile.Recipient) -> String {
         var s = ""
 
         s += propertiesTestString(accessor: accessor, properties: try! recipient.properties.getAllProperties(), namedProperties: recipient.file.namedProperties?.properties)
@@ -35,7 +35,7 @@ final class DumpPstFileTests: XCTestCase {
         return s
     }
 
-    func dumpMessage(accessor: String, message: PstFile.Message) -> String {
+    static func dumpMessage(accessor: String, message: PstFile.Message) -> String {
         var s = ""
 
         s += propertiesTestString(accessor: accessor, properties: try! message.properties.getAllProperties(), namedProperties: message.file.namedProperties?.properties)
@@ -68,10 +68,23 @@ final class DumpPstFileTests: XCTestCase {
         return s
     }
 
-    func dumpFolder(accessor: String, folder: PstFile.Folder) -> String {
+    static func dumpFolder(accessor: String, folder: PstFile.Folder) -> String {
         var s = ""
 
         s += propertiesTestString(accessor: accessor, properties: try! folder.properties.getAllProperties(), namedProperties: folder.file.namedProperties?.properties)
+
+        s += "do {\n"
+        let associatedContents = try! folder.getAssociatedContents()
+        s += "let associatedContents = try \(accessor).getAssociatedContents()\n"
+        s += "XCTAssertEqual(\(associatedContents.count), associatedContents.count)\n"
+
+        if associatedContents.count > 0 {
+            for (offset, associatedContent) in associatedContents.enumerated() {
+                s += dumpMessage(accessor: "associatedContents[\(offset)]", message: associatedContent)
+            }
+        }
+
+        s += "}\n\n"
 
         s += "do {\n"
         let messages = try! folder.getMessages()
@@ -96,7 +109,7 @@ final class DumpPstFileTests: XCTestCase {
         return s
     }
 
-    func dumpFile(pst: PstFile) {
+    static func dumpFile(pst: PstFile) {
         var s = "XCTAssertNotNil(pst.rootFolder)\n"
         
         s += dumpFolder(accessor: "pst.rootFolder!", folder: pst.rootFolder!)
@@ -157,10 +170,10 @@ final class DumpPstFileTests: XCTestCase {
                 "rhasson/node-libpst/outlook",
                 "tghanem/PST/user1@test.lab",
                 "vlazar-/sis-pst/goran_fazer@hotmail.com",
-            ] {
+            ].reversed() {
                 let data = try getData(name: name)
                 let pst = try PstFile(data: data)
-                dumpFile(pst: pst)
+                DumpPstFileTests.dumpFile(pst: pst)
             }
         }
     }
