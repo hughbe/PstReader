@@ -170,7 +170,7 @@ final class DumpPstFileTests: XCTestCase {
                 "rhasson/node-libpst/outlook",
                 "tghanem/PST/user1@test.lab",
                 "vlazar-/sis-pst/goran_fazer@hotmail.com",
-            ].reversed() {
+            ] {
                 let data = try getData(name: name)
                 let pst = try PstFile(data: data)
                 DumpPstFileTests.dumpFile(pst: pst)
