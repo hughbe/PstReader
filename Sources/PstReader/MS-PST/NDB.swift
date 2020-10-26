@@ -97,7 +97,7 @@ internal class NDB {
         return tree
     }
     
-    private func readAndDecompress(block: Block, buffer: UnsafeMutableBufferPointer<UInt8>) throws {
+    private func readAndDecompress(block: Block) throws -> DataStream {
         dataStream.position = Int(block.offset.rawValue)
         
         if type == .unicode4K && block.length != block.inflatedLength {
@@ -109,12 +109,12 @@ internal class NDB {
             let data = Data(try dataStream.readBytes(count: Int(block.length)))
             if #available(OSX 10.15, *) {
                 let nsData = try (data as NSData).decompressed(using: .zlib)
-                nsData.copyBytes(to: buffer)
+                return DataStream(data: nsData as Data)
             } else {
                 throw PstReadError.zlibNotSupported
             }
         } else {
-            try dataStream.copyBytes(to: buffer, count: Int(block.inflatedLength))
+            return dataStream
         }
     }
     
@@ -125,23 +125,20 @@ internal class NDB {
             throw PstReadError.noSuchBlock(bid: bid.rawValue)
         }
         
-        var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))
-        try buffer.withUnsafeMutableBufferPointer {
-            try readAndDecompress(block: block, buffer: $0)
-        }
-        
         /// [MS-PST] 2.2.2.8.3.3 Subnode BTree
-        /// The subnode BTree collectively refers to all the elements that make up a subnode. The subnode BTree
-        /// is a BTree that is made up of SIBLOCK and SLBLOCK structures, which contain SIENTRY and SLENTRY
-        /// structures, respectively. These structures are defined in the following sections.
-        var blockDataStream = DataStream(buffer: buffer)
+        /// The subnode BTree collectively refers to all the elements that make up a subnode. The subnode BTree  is a BTree that is made up
+        /// of SIBLOCK and SLBLOCK structures, which contain SIENTRY and SLENTRY structures, respectively. These structures are
+        /// defined in the following sections.
+        var blockDataStream = try readAndDecompress(block: block)
+        let position = blockDataStream.position
+
         let btype: UInt8 = try blockDataStream.read()
         if btype != 0x02 {
             throw PstReadError.invalidBtype(btype: btype)
         }
         
         let cLevel: UInt8 = try blockDataStream.read()
-        blockDataStream.position = 0
+        blockDataStream.position = position
         switch cLevel {
         case 0x00:
             let slBlock = try SLBLOCK(dataStream: &blockDataStream, type: type)
@@ -183,20 +180,16 @@ internal class NDB {
             throw PstReadError.noSuchBlock(bid: dataBid.rawValue)
         }
         
-        var buffer = [UInt8](repeating: 0, count: Int(block.inflatedLength))
-        try buffer.withUnsafeMutableBufferPointer {
-            try readAndDecompress(block: block, buffer: $0)
-        }
-        
+        var blockDataStream = try readAndDecompress(block: block)
         if block.isInternal {
-            var blockDataStream = DataStream(buffer: buffer)
+            let position = blockDataStream.position
             let btype: UInt8 = try blockDataStream.read()
             if btype != 0x01 {
                 throw PstReadError.invalidBtype(btype: btype)
             }
             
             let cLevel: UInt8 = try blockDataStream.read()
-            blockDataStream.position = 0
+            blockDataStream.position = position
             
             switch cLevel {
             case 0x01:
@@ -217,6 +210,7 @@ internal class NDB {
                 throw PstReadError.invalidCLevel(cLevel: cLevel)
             }
         } else {
+            var buffer = try blockDataStream.readBytes(count: Int(block.inflatedLength))
             // Key for cyclic algorithm is the low 32 bits of the BID, so supply it in case it's needed
             decrypt(buffer: &buffer, key: UInt32(dataBid.rawValue & 0xFFFF))
             blocks.append(buffer)
