@@ -120,6 +120,7 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
+                "joachimmetz/plaso/nromanoff@stark-research-labs.com",
                 "simiden/pst2john/97_outlook_qwerty12345",
                 "hughbe/pstreadertests@outlook.com.ost",
                 "hughbe/pstreadertests@outlook.com.pst",

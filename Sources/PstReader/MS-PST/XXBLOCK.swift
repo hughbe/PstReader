@@ -37,7 +37,7 @@ internal struct XXBLOCK: CustomDebugStringConvertible {
         
         /// cLevel (1 byte): MUST be set to 0x02 to indicate and XXBLOCK.
         self.cLevel = try dataStream.read()
-        if cLevel != 0x01 {
+        if cLevel != 0x02 {
             throw PstReadError.invalidCLevel(cLevel: cLevel)
         }
         
