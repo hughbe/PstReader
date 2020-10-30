@@ -21,10 +21,6 @@ internal struct BTree<T> : CustomDebugStringConvertible where T: TreeNode {
     
     private func lookupTreeNode(parent: TreeIntermediate, key: UInt64, readDeferred: ((TreeIntermediate) throws -> Void)?) rethrows -> TreeNode? {
         if parent.readDeferred {
-            if readDeferred == nil {
-                fatalError("Deferred index found, but no reader supplied")
-            }
-            
             try readDeferred!(parent)
         }
 
