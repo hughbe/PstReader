@@ -18,8 +18,8 @@ final class DumpPstFileTests: XCTestCase {
         s += propertiesTestString(accessor: accessor, properties: try! attachment.properties.getAllProperties(), namedProperties: attachment.file.namedProperties?.properties)
         
         if !attachment.hasDetails {
-            s += "{\n"
-            s += "let attachmentDetails = try \(accessor).getAttachmentDetails()"
+            s += "do {\n"
+            s += "let attachmentDetails = try \(accessor).getAttachmentDetails()\n"
             s += dumpAttachment(accessor: "attachmentDetails", attachment: try! attachment.getAttachmentDetails())
             s += "}\n"
         }
@@ -41,19 +41,15 @@ final class DumpPstFileTests: XCTestCase {
         s += propertiesTestString(accessor: accessor, properties: try! message.properties.getAllProperties(), namedProperties: message.file.namedProperties?.properties)
 
         s += "XCTAssertEqual(\(message.attachments.count), \(accessor).attachments.count)\n"
-        if message.attachments.count > 0 {
-            for (offset, attachment) in message.attachments.enumerated() {
-                s += dumpAttachment(accessor: "\(accessor).attachments[\(offset)]", attachment: attachment)
-                s += "\n"
-            }
+        for (offset, attachment) in message.attachments.enumerated() {
+            s += dumpAttachment(accessor: "\(accessor).attachments[\(offset)]", attachment: attachment)
+            s += "\n"
         }
         
         s += "XCTAssertEqual(\(message.recipients.count), \(accessor).recipients.count)\n"
-        if message.recipients.count > 0 {
-            for (offset, recipient) in message.recipients.enumerated() {
-                s += dumpRecipient(accessor: "\(accessor).recipients[\(offset)]", recipient: recipient)
-                s += "\n"
-            }
+        for (offset, recipient) in message.recipients.enumerated() {
+            s += dumpRecipient(accessor: "\(accessor).recipients[\(offset)]", recipient: recipient)
+            s += "\n"
         }
 
         s += "\n"
@@ -77,11 +73,8 @@ final class DumpPstFileTests: XCTestCase {
         let associatedContents = try! folder.getAssociatedContents()
         s += "let associatedContents = try \(accessor).getAssociatedContents()\n"
         s += "XCTAssertEqual(\(associatedContents.count), associatedContents.count)\n"
-
-        if associatedContents.count > 0 {
-            for (offset, associatedContent) in associatedContents.enumerated() {
-                s += dumpMessage(accessor: "associatedContents[\(offset)]", message: associatedContent)
-            }
+        for (offset, associatedContent) in associatedContents.enumerated() {
+            s += dumpMessage(accessor: "associatedContents[\(offset)]", message: associatedContent)
         }
 
         s += "}\n\n"
@@ -90,13 +83,9 @@ final class DumpPstFileTests: XCTestCase {
         let messages = try! folder.getMessages()
         s += "let messages = try \(accessor).getMessages()\n"
         s += "XCTAssertEqual(\(messages.count), messages.count)\n"
-
-        if messages.count > 0 {
-            for (offset, message) in messages.enumerated() {
-                s += dumpMessage(accessor: "messages[\(offset)]", message: message)
-            }
+        for (offset, message) in messages.enumerated() {
+            s += dumpMessage(accessor: "messages[\(offset)]", message: message)
         }
-
         s += "}\n\n"
 
         s += "XCTAssertEqual(\(folder.children.count), \(accessor).children.count)\n"
