@@ -98,10 +98,10 @@ final class DumpPstFileTests: XCTestCase {
         return s
     }
 
-    static func dumpFile(pst: PstFile) {
+    static func dump(file: PstFile) {
         var s = "XCTAssertNotNil(pst.rootFolder)\n"
         
-        s += dumpFolder(accessor: "pst.rootFolder!", folder: pst.rootFolder!)
+        s += dumpFolder(accessor: "pst.rootFolder!", folder: file.rootFolder!)
 
         print(s)
     }
@@ -163,7 +163,7 @@ final class DumpPstFileTests: XCTestCase {
             ] {
                 let data = try getData(name: name)
                 let pst = try PstFile(data: data)
-                DumpPstFileTests.dumpFile(pst: pst)
+                DumpPstFileTests.dump(file: pst)
             }
         }
     }
