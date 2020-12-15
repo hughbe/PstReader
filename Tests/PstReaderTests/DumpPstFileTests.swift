@@ -109,57 +109,86 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
-                "joachimmetz/plaso/nromanoff@stark-research-labs.com",
-                "simiden/pst2john/97_outlook_qwerty12345",
-                "hughbe/pstreadertests@outlook.com.ost",
-                "hughbe/pstreadertests@outlook.com.pst",
-                "rjohnsondev/java-libpst/example-2013",
-                "simiden/pst2john/2k_outlook_qwerty1234",
-                "simiden/pst2john/97_outlook_pass12345",
-                "simiden/pst2john/2003_compressable-encryption_quickbrownfox",
-                "simiden/pst2john/2003_compressable-encryption_quickquick",
-                "simiden/pst2john/2003_high-encryption_quickbrownfox3",
-                "simiden/pst2john/2003_high-encryption_quickquick",
-                "simiden/pst2john/2003_high-encryption_quickquick",
-                "simiden/pst2john/2003_no-encryption_quickquick",
-                "simiden/pst2john/2003_no-encryption_quickquick12",
-                "simiden/pst2john/2003_outlook-high-encryption_cheechNchong",
-                "simiden/pst2john/2007_default_a1sellers",
-                "simiden/pst2john/2007_default_orxgnm",
-                "simiden/pst2john/openwall",
-                "simiden/pst2john/Outlook_enc",
-                "simiden/pst2john/password",
-                "aranetic/process-pst/flags_jane_doe",
-                "aranetic/process-pst/flags_john_doe",
-                "aranetic/process-pst/four_nesting_levels",
-                "aranetic/process-pst/multiple_to_cc",
-                "aranetic/process-pst/unsent_email",
-                "ic4f/pluto/albert_meyers_000_1_1",
+                /* joachimmetz/plaso */
+                "nromanoff@stark-research-labs.com",
+                "97_outlook_qwerty12345",
+                
+                /* hughbe */
+                "pstreadertests@outlook.com.ost",
+                "pstreadertests@outlook.com.pst",
+                
+                /* rjohnsondev/java-libpst */
+                "example-2013",
+    
+                /* simiden/pst2john/ */
+                "2k_outlook_qwerty1234",
+                "97_outlook_pass12345",
+                "2003_compressable-encryption_quickbrownfox",
+                "2003_compressable-encryption_quickquick",
+                "2003_high-encryption_quickbrownfox3",
+                "2003_high-encryption_quickquick",
+                "2003_high-encryption_quickquick",
+                "2003_no-encryption_quickquick",
+                "2003_no-encryption_quickquick12",
+                "2003_outlook-high-encryption_cheechNchong",
+                "2007_default_a1sellers",
+                "2007_default_orxgnm",
+                "openwall",
+                "Outlook_enc",
+                "password",
+                
+                /* aranetic/process-pst/ */
+                "flags_jane_doe",
+                "flags_john_doe",
+                "four_nesting_levels",
+                "multiple_to_cc",
+                "unsent_email",
+                
+                /* ic4f/pluto */
+                "albert_meyers_000_1_1",
+                
+                /* EDRM Enron Email Data Set */
                 "EDRM Enron Email Data Set/sample",
-                "DFRWS 2009 Rodeo/DFRWS2009-Outlook-Email",
-                "aspose-email/Aspose.Email-for-Java/destination",
-                "aspose-email/Aspose.Email-for-Java/MapiNoteToPST_out",
-                "aspose-email/Aspose.Email-for-Java/Outlook",
-                "aspose-email/Aspose.Email-for-Java/passwordprotectedPST",
-                "aspose-email/Aspose.Email-for-Java/PersonalStorage",
-                "aspose-email/Aspose.Email-for-Java/sample",
-                "aspose-email/Aspose.Email-for-Java/SampleContacts",
-                "aspose-email/Aspose.Email-for-Java/source",
-                "aspose-email/Aspose.Email-for-Java/Sub",
-                "aspose-email/Aspose.Email-for-Java/Sub",
-                "epfromer/pst-extractor/enron",
-                "farnulfo/pst-exp/sample1",
-                "farnulfo/pst-exp/sample2",
-                "farnulfo/pst-exp/submessage",
-                "farnulfo/pst-exp/test_ansi",
-                "farnulfo/pst-exp/test_unicode",
-                "hughbe/backup",
-                "hughbe/backup_with_rules",
-                "rjohnsondev/java-libpst/dist-list",
-                "rjohnsondev/java-libpst/passworded",
-                "rhasson/node-libpst/outlook",
-                "tghanem/PST/user1@test.lab",
-                "vlazar-/sis-pst/goran_fazer@hotmail.com",
+                
+                /* DFRWS 2009 Rodeo */
+                "DFRWS2009-Outlook-Email",
+                
+                /* aspose-email/Aspose.Email-for-Java */
+                "destination",
+                "MapiNoteToPST_out",
+                "Outlook",
+                "passwordprotectedPST",
+                "PersonalStorage",
+                "sample",
+                "SampleContacts",
+                "source",
+                "Sub",
+                "Sub",
+                
+                /* epfromer/pst-extractor */
+                "enron",
+                
+                /* farnulfo/pst-exp */
+                "sample1",
+                "sample2",
+                "submessage",
+                "test_ansi",
+                "test_unicode",
+                
+                /* custom */
+                "backup",
+                "backup_with_rules",
+                "dist-list",
+                "passworded",
+                
+                /* rhasson/node-libpst */
+                "outlook",
+                
+                /* tghanem/PST */
+                "user1@test.lab",
+                
+                /* vlazar-/sis-pst */
+                "goran_fazer@hotmail.com",
             ] {
                 let data = try getData(name: name)
                 let pst = try PstFile(data: data)

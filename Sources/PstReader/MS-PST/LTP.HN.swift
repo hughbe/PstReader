@@ -55,7 +55,7 @@ internal extension LTP {
             var blocks: [HNDataBlock] = []
 
             for entry in try ndb.readBlocks(dataBid: dataBid).enumerated() {
-                var bufferDataStream = DataStream(buffer: entry.element)
+                var bufferDataStream = DataStream(entry.element)
                 // First block contains a HNHDR
                 if entry.offset == 0 {
                     let header = try HNHDR(dataStream: &bufferDataStream, type: ndb.type)
@@ -91,7 +91,7 @@ internal extension LTP {
 
         public func getDataStream(hid: HID) -> DataStream {
             let block = blocks[Int(hid.hidBlockIndex)]
-            var dataStream = DataStream(buffer: block.buffer)
+            var dataStream = DataStream(block.buffer)
             
             let position = block.rgbidAlloc[Int(hid.hidIndex - 1)]
             dataStream.position = Int(position)
@@ -127,7 +127,7 @@ internal extension LTP {
                 }
 
                 let buffer = try ndb.readSubNodeBlock(subNodeTree: subNodeTree, nid: hnid.nid)
-                var dataStream = DataStream(buffer: buffer)
+                var dataStream = DataStream(buffer)
                 return try readFunc(&dataStream, buffer.count)
             default:
                 throw PstReadError.invalidHidType(hidType: hnid.hidType.rawValue)

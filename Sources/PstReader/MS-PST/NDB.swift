@@ -52,7 +52,7 @@ internal class NDB {
         
         let page = try BTPAGE(dataStream: &dataStream, type: type)
         
-        var entriesDataStream = DataStream(buffer: page.rgentries)
+        var entriesDataStream = DataStream(page.rgentries)
         for _ in 0..<page.cEnt {
             if page.cLevel > 0 {
                 let entry = try BTENTRY(dataStream: &entriesDataStream, type: type)
@@ -109,7 +109,7 @@ internal class NDB {
             let data = Data(try dataStream.readBytes(count: Int(block.length)))
             if #available(OSX 10.15, *) {
                 let nsData = try (data as NSData).decompressed(using: .zlib)
-                return DataStream(data: nsData as Data)
+                return DataStream(nsData as Data)
             } else {
                 throw PstReadError.zlibNotSupported
             }

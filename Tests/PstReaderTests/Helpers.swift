@@ -9,22 +9,23 @@ import Foundation
 
 public func getData(name: String) throws -> Data {
     var name = name
-    let urlExtension: String
+    let fileExtension: String
     if name.hasSuffix(".pst") {
         name = String(name.prefix(name.count - 4))
-        urlExtension = "pst"
+        fileExtension = "pst"
     } else if name.hasSuffix(".ost") {
         name = String(name.prefix(name.count - 4))
-        urlExtension = "ost"
+        fileExtension = "ost"
     } else {
-        urlExtension = "pst"
+        fileExtension = "pst"
     }
     
-    let url = URL(forResource: name, withExtension: urlExtension)
-    if FileManager.default.fileExists(atPath: url.path) {
+    
+    
+    if let url = Bundle.module.url(forResource: name, withExtension: fileExtension) {
         return try Data(contentsOf: url)
     }
     
-    let url2 = URL(forResource: name, withExtension: "ost")
+    let url2 = Bundle.module.url(forResource: name, withExtension: "ost")!
     return try Data(contentsOf: url2)
 }

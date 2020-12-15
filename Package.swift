@@ -1,4 +1,4 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -11,9 +11,9 @@ let package = Package(
             targets: ["PstReader"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/hughbe/DataStream", from: "1.1.1"),
+        .package(url: "https://github.com/hughbe/DataStream", from: "2.0.0"),
         .package(url: "https://github.com/hughbe/WindowsDataTypes", from: "1.0.0"),
-        .package(name: "MAPI", path: "../SwiftMAPI")
+        .package(name: "MAPI", url: "https://github.com/hughbe/SwiftMAPI", from: "1.0.0"),
     ],
     targets: [
         .target(
@@ -21,6 +21,7 @@ let package = Package(
             dependencies: ["DataStream", "MAPI", "WindowsDataTypes"]),
         .testTarget(
             name: "PstReaderTests",
-            dependencies: ["PstReader"]),
+            dependencies: ["PstReader"],
+            resources: [.process("Resources")]),
     ]
 )

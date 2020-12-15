@@ -4,7 +4,7 @@ import MAPI
 
 final class PerformanceTests: XCTestCase {
     func testPerformance() throws {
-        let data = try getData(name: "hughbe/backup")
+        let data = try getData(name: "backup")
         guard #available(iOS 13.0, *) else {
             return
         }

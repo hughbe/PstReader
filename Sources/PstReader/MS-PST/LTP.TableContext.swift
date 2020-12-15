@@ -479,7 +479,7 @@ internal extension LTP {
                 }
                 
                 // Read the column existence data
-                var blockDataStream = DataStream(buffer: dataBlock.buffer)
+                var blockDataStream = DataStream(dataBlock.buffer)
                 blockDataStream.position = readPosition
                 
                 let rgCEB = try blockDataStream.readBytes(count: rgCEBSize)

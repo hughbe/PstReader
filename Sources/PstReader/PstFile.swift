@@ -13,7 +13,7 @@ public class PstFile {
     private var ndb: NDB
     
     public convenience init(data: Data) throws {
-        var dataStream = DataStream(data: data)
+        var dataStream = DataStream(data)
         try self.init(dataStream: &dataStream)
     }
     

@@ -12,7 +12,7 @@ import XCTest
 final class OutlookPstFileTests: XCTestCase {
     func testExample() throws {
         do {
-            let data = try getData(name: "hughbe/backup")
+            let data = try getData(name: "backup")
             let pst = try PstFile(data: data)
 
             XCTAssertNotNil(pst.rootFolder)
@@ -298,7 +298,7 @@ final class OutlookPstFileTests: XCTestCase {
         }
 
         do {
-            let data = try getData(name: "hughbe/backup_with_rules")
+            let data = try getData(name: "backup_with_rules")
             let pst = try PstFile(data: data)
             let inboxFolder = pst.rootFolder!["Top of Outlook data file"]!["Inbox"]!
             XCTAssertNotNil(inboxFolder)
@@ -332,7 +332,7 @@ final class OutlookPstFileTests: XCTestCase {
     
     func testAnsi() throws {
         do {
-            let data = try getData(name: "simiden/pst2john/97_outlook_qwerty12345")
+            let data = try getData(name: "97_outlook_qwerty12345")
             let pst = try PstFile(data: data)
             
             XCTAssertNotNil(pst.rootFolder)
@@ -404,7 +404,7 @@ final class OutlookPstFileTests: XCTestCase {
 
     func testOst() throws {
         do {
-            let data = try getData(name: "hughbe/pstreadertests@outlook.com.ost")
+            let data = try getData(name: "pstreadertests@outlook.com.ost")
             let pst = try PstFile(data: data)
          
             XCTAssertNotNil(pst.rootFolder)

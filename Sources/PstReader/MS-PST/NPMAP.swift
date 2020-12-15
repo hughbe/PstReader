@@ -38,7 +38,7 @@ internal struct NPMAP {
             throw PstReadError.missingProperty(property: .tagNameidStreamGuid)
         }
         
-        var guidDataStream = DataStream(data: guidStream)
+        var guidDataStream = DataStream(guidStream)
         func getGuid(index: Int) throws -> UUID {
             let position = index * MemoryLayout<UUID>.size
             if position >= guidDataStream.count {
@@ -62,12 +62,12 @@ internal struct NPMAP {
         /// Note: although technically this is required, it is missing from older pst files that don't have any string named properties
         let stringDataStream: DataStream?
         if let stringStream = try propertyContext.properties.getProperty(id: PstPropertyId.tagNameidStreamString.rawValue) as? Data {
-            stringDataStream = DataStream(data: stringStream)
+            stringDataStream = DataStream(stringStream)
         } else {
             stringDataStream = nil
         }
         
-        var entryDataStream = DataStream(data: entryStream)
+        var entryDataStream = DataStream(entryStream)
         let entriesCount = entryDataStream.count / 8
 
         var dictionary = [NamedProperty: UInt16]()
