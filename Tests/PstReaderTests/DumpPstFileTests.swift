@@ -148,7 +148,7 @@ final class DumpPstFileTests: XCTestCase {
                 "albert_meyers_000_1_1",
                 
                 /* EDRM Enron Email Data Set */
-                "EDRM Enron Email Data Set/sample",
+                "/sample",
                 
                 /* DFRWS 2009 Rodeo */
                 "DFRWS2009-Outlook-Email",
