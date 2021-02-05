@@ -311,7 +311,7 @@ internal extension LTP {
                     return nil
                 }
 
-                return try readData(hnid: hnid) { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
+                return try readData(hnid: hnid) { (dataStream, count) in try GUID(dataStream: &dataStream) }
             case .serverId:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
@@ -445,7 +445,7 @@ internal extension LTP {
                 }
                 
                 let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
-                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try $0.readGUID(endianess: .littleEndian) }
+                return try readMultiValuedPropertiesWithFixedSizeBaseType(hnid: hnid) { try GUID(dataStream: &$0) }
             case .multipleBinary:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)

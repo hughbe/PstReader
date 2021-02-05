@@ -200,7 +200,7 @@ internal extension LTP {
                 case .time:
                     return try readData { (dataStream, count) in try FILETIME(dataStream: &dataStream).date }
                 case .guid:
-                    return try readData { (dataStream, count) in try dataStream.readGUID(endianess: .littleEndian) }
+                    return try readData { (dataStream, count) in try GUID(dataStream: &dataStream) }
                 case .serverId:
                     return try readData { (dataStream, count) in
                         let _: UInt16 = try dataStream.read(endianess: .littleEndian)
@@ -243,7 +243,7 @@ internal extension LTP {
                 case .multipleTime:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<FILETIME>.size) { try FILETIME(dataStream: &$0).date }
                 case .multipleGuid:
-                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.readGUID(endianess: .littleEndian) }
+                    return try readMultiValuedPropertiesWithFixedSizeBaseType { try GUID(dataStream: &$0) }
                 case .multipleBinary:
                     return try readMultiValuedPropertiesWithVariableSizeBaseType { Data(try $0.readBytes(count: $1)) }
                 case .unknown:

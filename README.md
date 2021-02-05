@@ -16,3 +16,8 @@ let data = Data(contentsOfFile: "<path-to-file>.pst")!
 let file = try PstFile(data: data)
 print(file.rootFolder)
 ```
+
+
+## Resources
+
+- [https://github.com/JasonSchlauch/mfcmapi/blob/master/Guids.h](https://github.com/JasonSchlauch/mfcmapi/blob/master/Guids.h)

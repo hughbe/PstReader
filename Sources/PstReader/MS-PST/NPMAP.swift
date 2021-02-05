@@ -8,6 +8,7 @@
 import DataStream
 import Foundation
 import MAPI
+import WindowsDataTypes
 
 /// [MS-PST] 2.4.7 Named Property Lookup Map
 /// The mapping between NPIDs and property names is done using a special Name-to-ID-Map in the PST,
@@ -39,14 +40,14 @@ internal struct NPMAP {
         }
         
         var guidDataStream = DataStream(guidStream)
-        func getGuid(index: Int) throws -> UUID {
-            let position = index * MemoryLayout<UUID>.size
+        func getGuid(index: Int) throws -> GUID {
+            let position = index * MemoryLayout<GUID>.size
             if position >= guidDataStream.count {
                 throw MAPIError.corrupted
             }
 
             guidDataStream.position = position
-            return try guidDataStream.readGUID(endianess: .littleEndian)
+            return try GUID(dataStream: &guidDataStream)
         }
 
         /// [MS-PST] 2.4.7.3 Entry Stream
@@ -77,11 +78,11 @@ internal struct NPMAP {
         for _ in 0..<entriesCount {
             let nameid = try NAMEID(dataStream: &entryDataStream)
     
-            let guid: UUID
+            let guid: GUID
             switch nameid.wGuid {
             case 0:
                 /// 0x0000 NAMEID_GUID_NONE No GUID (N=1).
-                guid = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+                guid = GUID(0x00000000, 0x0000, 0x0000, 0x0000, 0x000000000000)
             case 1:
                 /// 0x0001 NAMEID_GUID_MAPI The GUID is PS_MAPI ([MS-OXPROPS] section 1.3.2).
                 guid = CommonlyUsedPropertySet.PS_MAPI

@@ -109,13 +109,21 @@ final class DumpPstFileTests: XCTestCase {
     func testDumper() throws {
         do {
             for name in [
+                /* hughbe */
+                "Outlook98Backup.pst",
+                "archive",
+                "archive1",
+                "backup_with_rules",
+                "backup",
+                "hughbe_Outlook",
+                "Outlook2007Backup.pst",
+                "Personal Folders",
+                "pstreadertests@outlook.com.ost",
+                "pstreadertests@outlook.com.pst",
+                
                 /* joachimmetz/plaso */
                 "nromanoff@stark-research-labs.com",
                 "97_outlook_qwerty12345",
-                
-                /* hughbe */
-                "pstreadertests@outlook.com.ost",
-                "pstreadertests@outlook.com.pst",
                 
                 /* rjohnsondev/java-libpst */
                 "example-2013",
@@ -156,14 +164,14 @@ final class DumpPstFileTests: XCTestCase {
                 /* aspose-email/Aspose.Email-for-Java */
                 "destination",
                 "MapiNoteToPST_out",
-                "Outlook",
+                "aspose_Outlook",
                 "passwordprotectedPST",
                 "PersonalStorage",
-                "sample",
+                "aspose_sample",
                 "SampleContacts",
                 "source",
                 "Sub",
-                "Sub",
+                "test",
                 
                 /* epfromer/pst-extractor */
                 "enron",
