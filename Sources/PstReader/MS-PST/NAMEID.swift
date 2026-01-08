@@ -42,7 +42,7 @@ internal struct NAMEID: CustomDebugStringConvertible {
 
         /// wPropIdx (2 bytes): Property index. This is the ordinal number of the named property, which is
         /// used to calculate the NPID of this named property. The NPID of this named property is calculated by
-        /// adding 0x8000 to wPropIndex.
+        /// adding 0x8000 to wPropIdx.
         self.wPropIdx = try dataStream.read(endianess: .littleEndian)
     }
 
