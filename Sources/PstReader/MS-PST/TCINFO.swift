@@ -11,7 +11,7 @@ import DataStream
 /// A Table Context represents a table with rows of columns. From an implementation perspective, a TC is
 /// a complex, composite structure that is built on top of an HN. The presence of a TC is indicated at both
 /// the NDB and LTP Layers. At the NDB Layer, a TC is indicated through one of the special NID_TYPEs,
-/// and at the LTP Layer, a value of bTypeTC for bClientSig in the HNHEADER structure is reserved for
+/// and at the LTP Layer, a value of bTypeTC for bClientSig in the HNHDR structure is reserved for
 /// TCs. The underlying TC data is separated into 3 entries: a header with Column descriptors, a
 /// RowIndex (a nested BTH), and the actual table data (known as the Row Matrix).
 /// The Row Matrix contains the actual row data for the TC. New rows are appended to the end of the Row
