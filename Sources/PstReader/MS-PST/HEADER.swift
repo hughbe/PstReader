@@ -67,7 +67,7 @@ internal struct HEADER: CustomDebugStringConvertible {
         self.wMagicClient = wMagicClient
 
         /// wVer (2 bytes): File format version. This value MUST be 14 or 15 if the file is an ANSI PST file, and
-        /// MUST be greater than 23 if the file is a Unicode PST file. If the value is 37, it indicates that the file
+        /// MUST be greater than or equal to 23 if the file is a Unicode PST file. If the value is 37, it indicates that the file
         /// is written by an Outlook of version that supports Windows Information Protection (WIP). The data
         /// MAY have been protected by WIP.
         self.wVer = try dataStream.read(endianess: .littleEndian)
