@@ -42,7 +42,7 @@ internal struct SIBLOCK: CustomDebugStringConvertible {
         /// cEnt (2 bytes): The number of SIENTRYs in the SIBLOCK.
         self.cEnt = try dataStream.read(endianess: .littleEndian)
         
-        /// dwPadding (4 bytes, Unicode Only): Padding; MUST be set to zero.
+        /// dwPadding (4 bytes, Unicode only): Padding; MUST be set to zero.
         if type.isUnicode {
             self.dwPadding = try dataStream.read(endianess: .littleEndian)
         } else {
