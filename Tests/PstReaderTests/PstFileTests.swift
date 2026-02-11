@@ -331,6 +331,72 @@ final class OutlookPstFileTests: XCTestCase {
         }
     }
     
+    func testURLInitializer() throws {
+        let url = try getURL(name: "backup")
+        let pst = try PstFile(contentsOf: url)
+
+        XCTAssertNotNil(pst.rootFolder)
+        XCTAssertEqual("", pst.rootFolder!.displayName)
+        XCTAssertEqual(2, pst.rootFolder!.children.count)
+    }
+
+    func testConvenienceProperties() throws {
+        let data = try getData(name: "backup")
+        let pst = try PstFile(data: data)
+
+        let root = pst.rootFolder!
+        // Folder convenience
+        XCTAssertEqual(root.name, root.displayName)
+        XCTAssertEqual(root.emailCount, root.contentCount)
+        XCTAssertEqual(root.unreadCount, root.contentUnreadCount)
+
+        // Navigate to Inbox
+        let topOfOutlook = root.children[1]
+        let inbox = topOfOutlook["Inbox"]
+        XCTAssertNotNil(inbox)
+        XCTAssertEqual("Inbox", inbox!.name)
+
+        // Message convenience (if inbox has messages)
+        if let inbox = inbox, (inbox.emailCount ?? 0) > 0 {
+            let messages = try inbox.getMessages()
+            XCTAssertFalse(messages.isEmpty)
+
+            let message = messages[0]
+            // These should return the same values as the underlying MAPI properties
+            XCTAssertEqual(message.subjectText, message.subject)
+            XCTAssertEqual(message.senderDisplayName, message.senderName)
+            XCTAssertEqual(message.senderAddress, message.senderEmailAddress)
+            XCTAssertEqual(message.date, message.messageDeliveryTime)
+            XCTAssertEqual(message.bodyText, message.body)
+            XCTAssertEqual(message.sizeInBytes, message.messageSize)
+            XCTAssertEqual(message.toRecipients, message.displayTo)
+            XCTAssertEqual(message.ccRecipients, message.displayCc)
+            XCTAssertEqual(message.bccRecipients, message.displayBcc)
+
+            // Test senderDisplayString
+            if let name = message.senderName, let email = message.senderEmailAddress {
+                XCTAssertEqual(message.senderDisplayString, "\(name) <\(email)>")
+            }
+
+            // Test message details with attachments
+            let detailed = try message.getMessageDetails()
+            XCTAssertEqual(detailed.attachmentCount, detailed.attachments.count)
+
+            for attachment in detailed.attachments {
+                // Attachment convenience
+                XCTAssertEqual(attachment.filename, attachment.attachLongFilename ?? attachment.attachFilename)
+                XCTAssertEqual(attachment.sizeInBytes, attachment.attachSize)
+                XCTAssertEqual(attachment.mimeType, attachment.attachMimeTag)
+            }
+
+            for recipient in detailed.recipients {
+                // Recipient convenience
+                XCTAssertEqual(recipient.name, recipient.displayName)
+                XCTAssertEqual(recipient.address, recipient.emailAddress)
+            }
+        }
+    }
+
     func testAnsi() throws {
         do {
             let data = try getData(name: "97_outlook_qwerty12345")

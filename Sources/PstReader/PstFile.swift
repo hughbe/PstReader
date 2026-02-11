@@ -12,6 +12,17 @@ import MAPI
 public class PstFile {
     private var ndb: NDB
     
+    /// Initialize from a file URL using memory-mapped I/O.
+    /// The file is not loaded entirely into memory — the OS pages data in/out on demand,
+    /// allowing large PST files (multi-GB) to be opened without consuming equivalent RAM.
+    public convenience init(contentsOf url: URL) throws {
+        let data = try Data(contentsOf: url, options: .mappedIfSafe)
+        var dataStream = DataStream(data)
+        try self.init(dataStream: &dataStream)
+    }
+
+    /// Initialize from in-memory Data.
+    /// Note: For large PST files, prefer `init(contentsOf:)` which uses memory-mapped I/O.
     public convenience init(data: Data) throws {
         var dataStream = DataStream(data)
         try self.init(dataStream: &dataStream)
