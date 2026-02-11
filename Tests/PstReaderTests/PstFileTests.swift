@@ -380,7 +380,7 @@ final class OutlookPstFileTests: XCTestCase {
 
             // Test message details with attachments
             let detailed = try message.getMessageDetails()
-            XCTAssertEqual(detailed.attachmentCount, detailed.attachments.count)
+            XCTAssertEqual(detailed.loadedAttachmentCount, detailed.attachments.count)
 
             for attachment in detailed.attachments {
                 // Attachment convenience

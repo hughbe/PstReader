@@ -20,11 +20,19 @@ public func getURL(name: String) throws -> URL {
         fileExtension = "pst"
     }
 
+    let otherExtension = fileExtension == "pst" ? "ost" : "pst"
+
     if let url = Bundle.module.url(forResource: name, withExtension: fileExtension) {
         return url
     }
 
-    return Bundle.module.url(forResource: name, withExtension: "ost")!
+    if let url = Bundle.module.url(forResource: name, withExtension: otherExtension) {
+        return url
+    }
+
+    throw CocoaError(.fileNoSuchFile, userInfo: [
+        NSLocalizedDescriptionKey: "Test resource '\(name)' not found with .pst or .ost extension"
+    ])
 }
 
 public func getData(name: String) throws -> Data {
@@ -39,13 +47,18 @@ public func getData(name: String) throws -> Data {
     } else {
         fileExtension = "pst"
     }
-    
-    
-    
+
+    let otherExtension = fileExtension == "pst" ? "ost" : "pst"
+
     if let url = Bundle.module.url(forResource: name, withExtension: fileExtension) {
         return try Data(contentsOf: url, options: .mappedIfSafe)
     }
 
-    let url2 = Bundle.module.url(forResource: name, withExtension: "ost")!
-    return try Data(contentsOf: url2, options: .mappedIfSafe)
+    if let url = Bundle.module.url(forResource: name, withExtension: otherExtension) {
+        return try Data(contentsOf: url, options: .mappedIfSafe)
+    }
+
+    throw CocoaError(.fileNoSuchFile, userInfo: [
+        NSLocalizedDescriptionKey: "Test resource '\(name)' not found with .pst or .ost extension"
+    ])
 }

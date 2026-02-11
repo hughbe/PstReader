@@ -45,8 +45,9 @@ extension PstFile.Message {
     /// Whether this message has file attachments.
     public var hasFileAttachments: Bool { hasAttachments ?? false }
 
-    /// Number of attachments (requires `getMessageDetails()` to have been called).
-    public var attachmentCount: Int { attachments.count }
+    /// Number of attachments currently loaded into this message
+    /// (requires `getMessageDetails()` to have been called).
+    public var loadedAttachmentCount: Int { attachments.count }
 
     /// To recipients display string.
     public var toRecipients: String? { displayTo }
