@@ -190,13 +190,13 @@ internal extension LTP {
                         return ""
                     }
                     
-                    return try readData { try $0.readString(count: $1, encoding: .ascii)! }
+                    return try readData { try $0.readString(count: $1, encoding: .ascii) ?? "" }
                 case .string:
                     if property.dwValueHnid.rawValue == 0 {
                         return ""
                     }
-                    
-                    return try readData { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+
+                    return try readData { try $0.readString(count: $1, encoding: .utf16LittleEndian) ?? "" }
                 case .time:
                     return try readData { (dataStream, count) in try FILETIME(dataStream: &dataStream).date }
                 case .guid:
@@ -237,9 +237,9 @@ internal extension LTP {
                 case .multipleInteger64:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType { try $0.read(endianess: .littleEndian) as UInt64 }
                 case .multipleString8:
-                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .ascii)! }
+                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .ascii) ?? "" }
                 case .multipleString:
-                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+                    return try readMultiValuedPropertiesWithVariableSizeBaseType { try $0.readString(count: $1, encoding: .utf16LittleEndian) ?? "" }
                 case .multipleTime:
                     return try readMultiValuedPropertiesWithFixedSizeBaseType(size: MemoryLayout<FILETIME>.size) { try FILETIME(dataStream: &$0).date }
                 case .multipleGuid:

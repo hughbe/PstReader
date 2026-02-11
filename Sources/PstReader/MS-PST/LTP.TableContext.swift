@@ -283,18 +283,18 @@ internal extension LTP {
                     return ""
                 }
                 
-                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii)! }
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii) ?? "" }
             case .string:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
-                
+
                 let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
                 if hnid.rawValue == 0 {
                     return ""
                 }
-                
-                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+
+                return try readData(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian) ?? "" }
             case .time:
                 if column.cbData != 8 {
                     throw PstReadError.invalidPropertySize(expected: 8, actual: column.cbData)
@@ -424,14 +424,14 @@ internal extension LTP {
                 }
                 
                 let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
-                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii)! }
+                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .ascii) ?? "" }
             case .multipleString:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)
                 }
-                
+
                 let hnid = try HNID(dataStream: &blockDataStream, type: ndb.type)
-                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian)! }
+                return try readMultiValuedPropertiesWithVariableSizeBaseType(hnid: hnid) { try $0.readString(count: $1, encoding: .utf16LittleEndian) ?? "" }
             case .multipleTime:
                 if column.cbData != 4 {
                     throw PstReadError.invalidPropertySize(expected: 4, actual: column.cbData)

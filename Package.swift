@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/hughbe/DataStream", from: "2.0.0"),
         .package(url: "https://github.com/hughbe/WindowsDataTypes", from: "1.0.0"),
-        .package(name: "MAPI", url: "https://github.com/hughbe/SwiftMAPI", from: "1.0.0"),
+        .package(name: "MAPI", url: "https://github.com/hughbe/SwiftMAPI", from: "1.2.5"),
         //.package(name: "MAPI", path: "../SwiftMAPI"),
     ],
     targets: [
