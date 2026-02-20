@@ -364,8 +364,8 @@ final class OutlookPstFileTests: XCTestCase {
             let message = messages[0]
             // These should return the same values as the underlying MAPI properties
             XCTAssertEqual(message.subjectText, message.subject)
-            XCTAssertEqual(message.senderDisplayName, message.senderName)
-            XCTAssertEqual(message.senderAddress, message.senderEmailAddress)
+            XCTAssertEqual(message.senderDisplayName, message.senderName ?? message.sentRepresentingName)
+            XCTAssertEqual(message.senderAddress, message.senderEmailAddress ?? message.sentRepresentingEmailAddress)
             XCTAssertEqual(message.date, message.messageDeliveryTime)
             XCTAssertEqual(message.bodyText, message.body)
             XCTAssertEqual(message.sizeInBytes, message.messageSize)
@@ -374,7 +374,9 @@ final class OutlookPstFileTests: XCTestCase {
             XCTAssertEqual(message.bccRecipients, message.displayBcc)
 
             // Test senderDisplayString
-            if let name = message.senderName, let email = message.senderEmailAddress {
+            let name = message.senderName ?? message.sentRepresentingName
+            let email = message.senderEmailAddress ?? message.sentRepresentingEmailAddress
+            if let name, let email {
                 XCTAssertEqual(message.senderDisplayString, "\(name) <\(email)>")
             }
 
