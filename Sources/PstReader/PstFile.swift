@@ -95,11 +95,9 @@ public class PstFile {
         }
         
         public func getMessages() throws -> [Message] {
-            guard let contentCount = contentCount, contentCount > 0 else {
+            guard var table = try? LTP.TableContext(ndb: file.ndb, nid: NID(type: .contentsTable, nid: nid)) else {
                 return []
             }
-            
-            var table = try LTP.TableContext(ndb: file.ndb, nid: NID(type: .contentsTable, nid: nid))
             return table.rows
                 .map { Message(folder: self, nid: $0.nid, properties: $0.properties) }
         }

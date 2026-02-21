@@ -17,17 +17,23 @@ extension PstFile.Message {
     public var subjectText: String? { subject }
 
     /// Sender's display name (e.g. "John Doe").
-    public var senderDisplayName: String? { senderName }
+    /// Falls back to `sentRepresentingName` which is available in
+    /// the folder contents table without calling `getMessageDetails()`.
+    public var senderDisplayName: String? { senderName ?? sentRepresentingName }
 
     /// Sender's email address (e.g. "john@example.com").
-    public var senderAddress: String? { senderEmailAddress }
+    /// Falls back to `sentRepresentingEmailAddress`.
+    public var senderAddress: String? { senderEmailAddress ?? sentRepresentingEmailAddress }
 
     /// Combined sender string: "Name <email>" or just the available part.
+    /// Falls back to `sentRepresenting*` properties.
     public var senderDisplayString: String? {
-        if let name = senderName, let email = senderEmailAddress {
+        let name = senderName ?? sentRepresentingName
+        let email = senderEmailAddress ?? sentRepresentingEmailAddress
+        if let name, let email {
             return "\(name) <\(email)>"
         }
-        return senderName ?? senderEmailAddress
+        return name ?? email
     }
 
     /// When the message was delivered.
